@@ -38,8 +38,6 @@ const parseCommittedMetadata = (block: TimeBlock): CommittedMetadata | undefined
   return { laneId, startTime: clampToPlanningWindow(startTime), extentMinutes };
 };
 
-
-
 type ImportedPlacementMetadata = {
   importedDayKey: DayKey;
   importedStartTime: TimeOfDay;
@@ -68,17 +66,13 @@ const parseImportedPlacementMetadata = (block: TimeBlock): ImportedPlacementMeta
 
 const laneIdByDayKey = new Map(WEEK_LANES.map((lane) => [lane.dayKey, lane.id]));
 
-const markImportedAsPlaced = (state: BoardState, blockId: TimeBlockId): BoardState => ({
-  ...state,
-  blocks: state.blocks.map((block) =>
-    block.id === blockId && block.state === 'imported'
-      ? {
-          ...block,
-          state: 'uncommitted'
-        }
-      : block
-  )
-});
+const normalizeTemplateExtent = (block: TimeBlock): TimeBlock =>
+  block.state === 'template'
+    ? {
+        ...block,
+        extentMinutes: 30
+      }
+    : block;
 
 const createSpawnedBlockFromTemplate = (state: BoardState, templateBlock: TimeBlock): TimeBlock => {
   const siblingCount = state.blocks.filter((candidate) => candidate.metadata?.templateSourceBlockId === templateBlock.id).length;
@@ -86,6 +80,7 @@ const createSpawnedBlockFromTemplate = (state: BoardState, templateBlock: TimeBl
   return {
     ...templateBlock,
     id: `spawn-${templateBlock.id}-${siblingCount + 1}`,
+    extentMinutes: 30,
     state: 'uncommitted',
     metadata: {
       ...templateBlock.metadata,
@@ -122,17 +117,20 @@ const createInitialPlacements = (blocks: TimeBlock[]): PlacedBlock[] => {
   return placements;
 };
 
-export const createBoardWeek = (blocks: TimeBlock[]): BoardState =>
-  withQueueProjectionApplied({
-    blocks,
+export const createBoardWeek = (blocks: TimeBlock[]): BoardState => {
+  const normalizedBlocks = blocks.map((block) => normalizeTemplateExtent(block));
+
+  return withQueueProjectionApplied({
+    blocks: normalizedBlocks,
     lanes: WEEK_LANES,
-    placements: createInitialPlacements(blocks),
+    placements: createInitialPlacements(normalizedBlocks),
     queue: {
       id: createQueueId(),
       status: 'paused',
       items: []
     }
   });
+};
 
 export const placeBlockOnLane = (state: BoardState, blockId: TimeBlockId, laneId: DayLaneId, startTime: TimeOfDay): BoardState => {
   const block = state.blocks.find((candidate) => candidate.id === blockId);
@@ -141,8 +139,7 @@ export const placeBlockOnLane = (state: BoardState, blockId: TimeBlockId, laneId
   }
 
   if (block.state !== 'template') {
-    const nextState = markImportedAsPlaced(state, blockId);
-    return appendPlacement(nextState, blockId, laneId, startTime);
+    return appendPlacement(state, blockId, laneId, startTime);
   }
 
   const spawnedBlock = createSpawnedBlockFromTemplate(state, block);
@@ -177,7 +174,6 @@ export const resizeBlockFromBottom = (state: BoardState, blockId: TimeBlockId, s
 export const resizeBlockFromTop = (state: BoardState, blockId: TimeBlockId, slotDelta: number): BoardState =>
   resizePlacedBlock(state, blockId, { edge: 'top', slotDelta });
 
-
 export const autoPlaceImportedBlock = (state: BoardState, blockId: TimeBlockId): BoardState => {
   const block = state.blocks.find((candidate) => candidate.id === blockId);
   if (!block || block.state !== 'imported') {
@@ -196,3 +192,18 @@ export const autoPlaceImportedBlock = (state: BoardState, blockId: TimeBlockId):
 
   return placeBlockOnLane(state, blockId, laneId, importedPlacement.importedStartTime);
 };
+
+export const updateBlockDescription = (state: BoardState, blockId: TimeBlockId, description: string): BoardState => ({
+  ...state,
+  blocks: state.blocks.map((block) =>
+    block.id === blockId
+      ? {
+          ...block,
+          metadata: {
+            ...block.metadata,
+            description
+          }
+        }
+      : block
+  )
+});

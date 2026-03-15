@@ -7,9 +7,10 @@ type Props = {
   onDropBlock: (blockId: string, laneId: string, startTime: string) => void;
   onResizeTop: (blockId: string, slotDelta: number) => void;
   onResizeBottom: (blockId: string, slotDelta: number) => void;
+  onOpenDescriptionEditor: (blockId: string) => void;
 };
 
-export const DayLaneColumn = ({ lane, onDropBlock, onResizeBottom, onResizeTop }: Props) => (
+export const DayLaneColumn = ({ lane, onDropBlock, onResizeBottom, onResizeTop, onOpenDescriptionEditor }: Props) => (
   <section className="lane">
     <header>
       <h3>{lane.lane.label}</h3>
@@ -40,32 +41,33 @@ export const DayLaneColumn = ({ lane, onDropBlock, onResizeBottom, onResizeTop }
         const leftOffset = (card.layoutColumn ?? 0) * columnWidth;
 
         return (
-        <div
-          key={card.block.id}
-          className="lane-block-placement"
-          style={{
-            top: `${(card.topOffsetMinutes ?? 0) * 2}px`,
-            left: `calc(36px + ${leftOffset}%)`,
-            width: `calc((100% - 40px) * ${columnWidth / 100})`
-          }}
-          onDragOver={(event) => event.preventDefault()}
-          onDrop={(event) => {
-            event.preventDefault();
-            const payload = readBlockPayload(event);
-            if (payload && card.startTime) {
-              onDropBlock(payload.blockId, lane.lane.id, card.startTime);
-            }
-          }}
-        >
-          <TimeBlockCard
-            card={card}
-            fromLaneId={lane.lane.id}
-            onResizeBottom={onResizeBottom}
-            onResizeTop={onResizeTop}
-            visualContext="placed"
-          />
-        </div>
-      );
+          <div
+            key={card.block.id}
+            className="lane-block-placement"
+            style={{
+              top: `${(card.topOffsetMinutes ?? 0) * 2}px`,
+              left: `calc(36px + ${leftOffset}%)`,
+              width: `calc((100% - 40px) * ${columnWidth / 100})`
+            }}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => {
+              event.preventDefault();
+              const payload = readBlockPayload(event);
+              if (payload && card.startTime) {
+                onDropBlock(payload.blockId, lane.lane.id, card.startTime);
+              }
+            }}
+          >
+            <TimeBlockCard
+              card={card}
+              fromLaneId={lane.lane.id}
+              onResizeBottom={onResizeBottom}
+              onResizeTop={onResizeTop}
+              onDoubleClick={onOpenDescriptionEditor}
+              visualContext="placed"
+            />
+          </div>
+        );
       })}
     </div>
   </section>

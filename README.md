@@ -35,9 +35,11 @@ Duration remains on the block via `extentMinutes`. End time is derived from `sta
 ## Queue behavior (time-aware)
 
 - Template block is a reusable PSP source card (purple); dragging it spawns a new actionable block while the template remains in candidates
-- Imported block is an external-source candidate signal (blue) with imported baseline metadata (`importedDayKey`, `importedStartTime`, optional `importedEndTime`)
+- PSP template defaults to a 30-minute extent and candidate rendering shows label-only (no interval before placement)
+- Imported block is an external-source candidate signal (blue) with imported baseline metadata (`importedDayKey`, `importedStartTime`, optional `importedEndTime`) and source `description`
 - Imported candidates support double-click auto-placement to their imported day/time
-- Imported candidates are consumed on placement (moved into planned swimlanes)
+- Double-clicking a placed swimlane block opens a lightweight description editor modal that persists into block payload metadata
+- Imported candidates remain recoverable: placing shows them in swimlanes, returning from swimlanes puts them back in imported candidates
 - Uncommitted/imported block placed => queue `create` with day + derived interval (`start - end`)
 - Uncommitted block removed => queue item removed
 - Committed block removed from baseline => queue `delete`
@@ -81,7 +83,10 @@ npm run build
   - imported candidate: blue
   - PSP template: purple
 - Swimlane (placed) colors:
-  - uncommitted placed block: red
-  - committed placed block: yellow
+  - yellow: committed block still matching committed baseline (same day + start + tracked extent)
+  - red: changed/uncommitted placement (moved/resized/unscheduled or non-baseline)
 
-All block cards now display interval text (`HH:mm - HH:mm`) instead of duration labels.
+Interval display rules:
+- Swimlanes: show interval text (`HH:mm - HH:mm`)
+- Imported candidates: show imported interval
+- Template candidates: show PSP label only (no interval before placement)

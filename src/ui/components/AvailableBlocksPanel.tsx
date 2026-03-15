@@ -5,11 +5,18 @@ import { TimeBlockCard } from './TimeBlockCard';
 type Props = {
   importedCandidates: TimeBlockCardView[];
   templateCandidates: TimeBlockCardView[];
+  changedCommittedCandidates: TimeBlockCardView[];
   onReturnBlock: (blockId: string) => void;
   onAutoPlaceImported: (blockId: string) => void;
 };
 
-export const AvailableBlocksPanel = ({ importedCandidates, templateCandidates, onAutoPlaceImported, onReturnBlock }: Props) => (
+export const AvailableBlocksPanel = ({
+  importedCandidates,
+  templateCandidates,
+  changedCommittedCandidates,
+  onAutoPlaceImported,
+  onReturnBlock
+}: Props) => (
   <section
     className="panel"
     onDragOver={(event) => event.preventDefault()}
@@ -37,10 +44,21 @@ export const AvailableBlocksPanel = ({ importedCandidates, templateCandidates, o
 
     <div className="candidate-section">
       <h3>PSP templates</h3>
-      <p className="drop-hint">Purple PSP templates are reusable and remain in the palette.</p>
+      <p className="drop-hint">Purple PSP templates are reusable and spawn red 30-minute planning blocks when placed.</p>
       {templateCandidates.length === 0 ? <p>No template candidates.</p> : null}
       <div className="panel-blocks">
         {templateCandidates.map((card) => (
+          <TimeBlockCard key={card.block.id} card={card} visualContext="candidate" />
+        ))}
+      </div>
+    </div>
+
+    <div className="candidate-section">
+      <h3>Changed committed entries</h3>
+      <p className="drop-hint">Committed entries removed from baseline remain here as red change candidates.</p>
+      {changedCommittedCandidates.length === 0 ? <p>No changed committed entries.</p> : null}
+      <div className="panel-blocks">
+        {changedCommittedCandidates.map((card) => (
           <TimeBlockCard key={card.block.id} card={card} visualContext="candidate" />
         ))}
       </div>

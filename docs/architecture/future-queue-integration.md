@@ -47,3 +47,9 @@ Extent changes are not yet emitted as distinct queue semantics in this POC, but 
 - Queue and queue-item IDs are real deterministic unique identifiers (not display labels).
 - Queue interval display is always derived from placement start time + block extent.
 - Imported candidates already model source metadata and can later map 1:1 from Outlook/Azure/SCRUM payloads.
+
+## Compatibility notes for changed committed entries and description payload
+
+- A committed entry moved away from its baseline (including removal to unplanned candidate area) remains a queue change candidate until restored exactly to baseline.
+- Restoring the exact baseline placement clears the queued change projection deterministically.
+- Description is now part of block payload metadata. Current queue projection remains placement-focused, but payload enrichment keeps future outbound inclusion straightforward.

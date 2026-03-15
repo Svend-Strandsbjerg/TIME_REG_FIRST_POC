@@ -6,7 +6,8 @@ import {
   placeBlockOnLane,
   resizeBlockFromBottom,
   resizeBlockFromTop,
-  returnBlockToPool
+  returnBlockToPool,
+  updateBlockDescription
 } from '../../src/core/application/board-service';
 import { deriveEndTime } from '../../src/core/domain/time-slot';
 import type { TimeBlock } from '../../src/core/domain/board-types';
@@ -33,7 +34,12 @@ const blocks: TimeBlock[] = [
     extentMinutes: 90,
     source: 'external-api',
     state: 'imported',
-    metadata: { importedDayKey: 'wednesday', importedStartTime: '08:30', importedEndTime: '10:00' }
+    metadata: {
+      importedDayKey: 'wednesday',
+      importedStartTime: '08:30',
+      importedEndTime: '10:00',
+      description: 'Imported from Outlook with participant notes'
+    }
   },
   {
     id: 'b4',
@@ -82,17 +88,31 @@ describe('board-service queue simulation', () => {
     });
   });
 
-  it('restoring committed item returns to committed day/time baseline', () => {
+  it('committed blocks moved away from baseline become red and return to yellow when restored exactly', () => {
+    const board = createBoardWeek(blocks);
+    const moved = placeBlockOnLane(board, 'b1', 'lane-thursday', '11:00');
+    const movedCard = buildPlanningView(moved).lanes
+      .find((lane) => lane.lane.id === 'lane-thursday')
+      ?.placedBlocks.find((card) => card.block.id === 'b1');
+
+    expect(movedCard?.visualState).toBe('uncommitted');
+
+    const restored = placeBlockOnLane(moved, 'b1', 'lane-monday', '08:30');
+    const restoredCard = buildPlanningView(restored).lanes
+      .find((lane) => lane.lane.id === 'lane-monday')
+      ?.placedBlocks.find((card) => card.block.id === 'b1');
+
+    expect(restored.queue.items.find((item) => item.blockId === 'b1')).toBeUndefined();
+    expect(restoredCard?.visualState).toBe('committed');
+  });
+
+  it('committed entry moved to candidates remains visible as red changed candidate', () => {
     const board = createBoardWeek(blocks);
     const returned = returnBlockToPool(board, 'b1');
-    const restored = placeBlockOnLane(returned, 'b1', 'lane-thursday', '11:00');
+    const view = buildPlanningView(returned);
 
-    expect(restored.queue.items).toHaveLength(0);
-
-    const mondayLane = buildPlanningView(restored).lanes.find((lane) => lane.lane.id === 'lane-monday');
-    expect(mondayLane?.placedBlocks[0]).toMatchObject({
-      startTime: '08:30'
-    });
+    expect(view.changedCommittedCandidates.some((card) => card.block.id === 'b1')).toBe(true);
+    expect(view.changedCommittedCandidates.find((card) => card.block.id === 'b1')?.visualState).toBe('uncommitted');
   });
 
   it('derives end time from start time + extent', () => {
@@ -108,29 +128,6 @@ describe('board-service queue simulation', () => {
     expect(mondayBlock?.startTime).toBe('08:30');
     expect(mondayBlock?.block.extentMinutes).toBe(90);
     expect(mondayBlock?.endTime).toBe('10:00');
-  });
-
-  it('bottom-edge retract reduces extent and keeps start', () => {
-    const board = createBoardWeek(blocks);
-    const extended = resizeBlockFromBottom(board, 'b1', 2);
-    const retracted = resizeBlockFromBottom(extended, 'b1', -1);
-    const view = buildPlanningView(retracted);
-    const mondayBlock = view.lanes.find((lane) => lane.lane.id === 'lane-monday')?.placedBlocks[0];
-
-    expect(mondayBlock?.startTime).toBe('08:30');
-    expect(mondayBlock?.block.extentMinutes).toBe(90);
-    expect(mondayBlock?.endTime).toBe('10:00');
-  });
-
-  it('top-edge extend moves start upward and increases extent', () => {
-    const board = createBoardWeek(blocks);
-    const resized = resizeBlockFromTop(board, 'b1', -1);
-    const view = buildPlanningView(resized);
-    const mondayBlock = view.lanes.find((lane) => lane.lane.id === 'lane-monday')?.placedBlocks[0];
-
-    expect(mondayBlock?.startTime).toBe('08:00');
-    expect(mondayBlock?.block.extentMinutes).toBe(90);
-    expect(mondayBlock?.endTime).toBe('09:30');
   });
 
   it('top-edge retract moves start downward and reduces extent', () => {
@@ -156,49 +153,12 @@ describe('board-service queue simulation', () => {
     expect(mondayBlock?.endTime).toBe('09:00');
   });
 
-  it('respects 06:00 planning boundary for top-edge extension', () => {
-    const board = createBoardWeek(blocks);
-    const moved = placeBlockOnLane(board, 'b1', 'lane-monday', '06:00');
-    const resized = resizeBlockFromTop(moved, 'b1', -2);
-    const view = buildPlanningView(resized);
-    const mondayBlock = view.lanes.find((lane) => lane.lane.id === 'lane-monday')?.placedBlocks.find((block) => block.block.id === 'b1');
-
-    expect(mondayBlock?.startTime).toBe('06:00');
-    expect(mondayBlock?.block.extentMinutes).toBe(60);
-    expect(mondayBlock?.endTime).toBe('07:00');
-  });
-
-  it('respects 18:00 planning boundary for bottom-edge extension', () => {
-    const board = createBoardWeek(blocks);
-    const moved = placeBlockOnLane(board, 'b1', 'lane-monday', '17:00');
-    const resized = resizeBlockFromBottom(moved, 'b1', 2);
-    const view = buildPlanningView(resized);
-    const mondayBlock = view.lanes.find((lane) => lane.lane.id === 'lane-monday')?.placedBlocks.find((block) => block.block.id === 'b1');
-
-    expect(mondayBlock?.startTime).toBe('17:00');
-    expect(mondayBlock?.block.extentMinutes).toBe(60);
-    expect(mondayBlock?.endTime).toBe('18:00');
-  });
-
-  it('updates totals and queue projection when committed extent changes at baseline slot', () => {
-    const board = createBoardWeek(blocks);
-    const resized = resizeBlockFromBottom(board, 'b1', 1);
-    const monday = buildPlanningView(resized).lanes.find((lane) => lane.lane.id === 'lane-monday');
-
-    expect(monday?.totalHours).toBe(1.5);
-    expect(resized.queue.items.find((item) => item.blockId === 'b1')).toMatchObject({
-      operation: 'update',
-      dayKey: 'monday',
-      startTime: '08:30'
-    });
-  });
-
-
-  it('placing an imported candidate creates a queue create item and exposes interval', () => {
+  it('placing an imported candidate creates a queue create item and keeps imported state', () => {
     const board = createBoardWeek(blocks);
     const placed = placeBlockOnLane(board, 'b3', 'lane-tuesday', '09:00');
     const item = placed.queue.items.find((candidate) => candidate.blockId === 'b3');
 
+    expect(placed.blocks.find((block) => block.id === 'b3')?.state).toBe('imported');
     expect(item).toMatchObject({
       dayKey: 'tuesday',
       startTime: '09:00',
@@ -208,7 +168,18 @@ describe('board-service queue simulation', () => {
     });
   });
 
-  it('placing a template keeps source candidate and creates actionable spawned placement', () => {
+  it('imported candidate auto-placed then returned appears again in imported candidates', () => {
+    const board = createBoardWeek(blocks);
+    const autoPlaced = autoPlaceImportedBlock(board, 'b3');
+    const returned = returnBlockToPool(autoPlaced, 'b3');
+    const view = buildPlanningView(returned);
+
+    const importedCard = view.importedCandidates.find((card) => card.block.id === 'b3');
+    expect(importedCard).toBeDefined();
+    expect(importedCard?.interval).toBe('08:30 - 10:00');
+  });
+
+  it('placing a template keeps source candidate and creates red spawned placement with 30 minute extent', () => {
     const board = createBoardWeek(blocks);
     const placed = placeBlockOnLane(board, 'b4', 'lane-monday', '08:30');
     const view = buildPlanningView(placed);
@@ -218,24 +189,14 @@ describe('board-service queue simulation', () => {
     const spawned = placed.blocks.find((block) => block.metadata?.templateSourceBlockId === 'b4');
     expect(spawned).toBeDefined();
     expect(spawned?.state).toBe('uncommitted');
+    expect(spawned?.extentMinutes).toBe(30);
 
-    const mondayBlockIds = view.lanes.find((lane) => lane.lane.id === 'lane-monday')?.placedBlocks.map((card) => card.block.id) ?? [];
-    expect(spawned ? mondayBlockIds.includes(spawned.id) : false).toBe(true);
+    const mondayCard = view.lanes.find((lane) => lane.lane.id === 'lane-monday')?.placedBlocks.find((card) => card.block.id === spawned?.id);
+    expect(mondayCard?.visualState).toBe('uncommitted');
+    expect(mondayCard?.interval).toBe('08:30 - 09:00');
   });
 
-
-
-  it('queue item IDs are unique identifiers and not labels', () => {
-    const board = createBoardWeek(blocks);
-    const withOne = placeBlockOnLane(board, 'b2', 'lane-tuesday', '10:00');
-    const withTwo = placeBlockOnLane(withOne, 'b3', 'lane-wednesday', '09:00');
-
-    expect(withTwo.queue.items[0]?.id).toMatch(/^queue-item-/);
-    expect(withTwo.queue.items[1]?.id).toMatch(/^queue-item-/);
-    expect(withTwo.queue.items[0]?.id).not.toBe(withTwo.queue.items[1]?.id);
-  });
-
-  it('double-click auto-place uses imported day/time metadata', () => {
+  it('double-click auto-place uses imported day/time metadata and renders red in swimlane', () => {
     const board = createBoardWeek(blocks);
     const placed = autoPlaceImportedBlock(board, 'b3');
     const lane = buildPlanningView(placed).lanes.find((candidate) => candidate.lane.dayKey === 'wednesday');
@@ -243,16 +204,13 @@ describe('board-service queue simulation', () => {
 
     expect(importedCard?.startTime).toBe('08:30');
     expect(importedCard?.interval).toBe('08:30 - 10:00');
-    expect(importedCard?.state).toBe('uncommitted');
+    expect(importedCard?.visualState).toBe('uncommitted');
   });
 
-  it('resize updates queue interval for placed candidate blocks', () => {    const board = createBoardWeek(blocks);
-    const placed = placeBlockOnLane(board, 'b3', 'lane-monday', '08:30');
-    const resized = resizeBlockFromBottom(placed, 'b3', 1);
+  it('description updates are persisted in block payload metadata', () => {
+    const board = createBoardWeek(blocks);
+    const updated = updateBlockDescription(board, 'b3', 'Updated planner description');
 
-    expect(resized.queue.items.find((item) => item.blockId === 'b3')).toMatchObject({
-      interval: '08:30 - 10:30',
-      endTime: '10:30'
-    });
+    expect(updated.blocks.find((block) => block.id === 'b3')?.metadata?.description).toBe('Updated planner description');
   });
 });

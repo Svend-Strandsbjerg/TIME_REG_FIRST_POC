@@ -10,6 +10,7 @@ type Props = {
   onResizeTop: (blockId: string, slotDelta: number) => void;
   onResizeBottom: (blockId: string, slotDelta: number) => void;
   onAutoPlaceImported: (blockId: string) => void;
+  onOpenDescriptionEditor: (blockId: string) => void;
 };
 
 export const TimeRegistrationBoard = ({
@@ -18,12 +19,14 @@ export const TimeRegistrationBoard = ({
   onReturnBlock,
   onResizeBottom,
   onResizeTop,
-  onAutoPlaceImported
+  onAutoPlaceImported,
+  onOpenDescriptionEditor
 }: Props) => (
   <main className="layout">
     <AvailableBlocksPanel
       importedCandidates={board.importedCandidates}
       templateCandidates={board.templateCandidates}
+      changedCommittedCandidates={board.changedCommittedCandidates}
       onAutoPlaceImported={onAutoPlaceImported}
       onReturnBlock={onReturnBlock}
     />
@@ -39,6 +42,7 @@ export const TimeRegistrationBoard = ({
         onDropBlock={onPlaceBlock}
         onResizeBottom={onResizeBottom}
         onResizeTop={onResizeTop}
+        onOpenDescriptionEditor={onOpenDescriptionEditor}
       />
     </section>
     <QueueLogPanel queue={board.queue} />
