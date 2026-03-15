@@ -4,30 +4,57 @@ import { TimeBlockCard } from './TimeBlockCard';
 
 type Props = {
   lane: DayLaneView;
-  onDropBlock: (blockId: string, laneId: string) => void;
+  onDropBlock: (blockId: string, laneId: string, startTime: string) => void;
+  onExtendUpward: (blockId: string) => void;
+  onExtendDownward: (blockId: string) => void;
 };
 
-export const DayLaneColumn = ({ lane, onDropBlock }: Props) => (
-  <section
-    className="lane"
-    onDragOver={(event) => event.preventDefault()}
-    onDrop={(event) => {
-      event.preventDefault();
-      const payload = readBlockPayload(event);
-      if (payload) {
-        onDropBlock(payload.blockId, lane.lane.id);
-      }
-    }}
-  >
+export const DayLaneColumn = ({ lane, onDropBlock, onExtendDownward, onExtendUpward }: Props) => (
+  <section className="lane">
     <header>
       <h3>{lane.lane.label}</h3>
       <span>{lane.totalHours}h</span>
     </header>
     <span className="lane-summary">{lane.placedBlocks.length} planned</span>
-    {lane.placedBlocks.length === 0 ? <p className="drop-hint">Drop blocks here</p> : null}
-    <div className="lane-blocks">
+    <div className="time-lane-grid">
+      {lane.slots.map((slot) => (
+        <div
+          key={`${lane.lane.id}-${slot}`}
+          className="time-slot-row"
+          onDragOver={(event) => event.preventDefault()}
+          onDrop={(event) => {
+            event.preventDefault();
+            const payload = readBlockPayload(event);
+            if (payload) {
+              onDropBlock(payload.blockId, lane.lane.id, slot);
+            }
+          }}
+        >
+          <span>{slot}</span>
+        </div>
+      ))}
+
       {lane.placedBlocks.map((card) => (
-        <TimeBlockCard key={card.block.id} card={card} fromLaneId={lane.lane.id} />
+        <div
+          key={card.block.id}
+          className="lane-block-placement"
+          style={{ top: `${(card.topOffsetMinutes ?? 0) * 2}px` }}
+          onDragOver={(event) => event.preventDefault()}
+          onDrop={(event) => {
+            event.preventDefault();
+            const payload = readBlockPayload(event);
+            if (payload && card.startTime) {
+              onDropBlock(payload.blockId, lane.lane.id, card.startTime);
+            }
+          }}
+        >
+          <TimeBlockCard
+            card={card}
+            fromLaneId={lane.lane.id}
+            onExtendDownward={onExtendDownward}
+            onExtendUpward={onExtendUpward}
+          />
+        </div>
       ))}
     </div>
   </section>

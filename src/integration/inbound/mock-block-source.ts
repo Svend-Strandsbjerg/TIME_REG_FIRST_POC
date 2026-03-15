@@ -38,7 +38,8 @@ const createMockBlocks = (): TimeBlock[] => {
           ...block.metadata,
           committedPlacement: {
             laneId: 'lane-monday',
-            order: 0
+            startTime: '08:30',
+            extentMinutes: 60
           }
         }
       };
