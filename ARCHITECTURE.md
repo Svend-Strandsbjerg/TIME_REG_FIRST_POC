@@ -16,7 +16,7 @@ Owns framework-neutral model and rules:
 
 Owns use cases and projections:
 
-- Commands: create week, place/move by day+time, return to pool, extend up/down
+- Commands: create week, place/move by day+time, return to pool, resize from top/bottom edges
 - Projections: planner view, queue view, daily totals, time-entry drafts
 - Derived data: `endTime` from `startTime + extentMinutes`
 
@@ -25,7 +25,7 @@ Owns use cases and projections:
 Owns interaction intent only:
 
 - drag/drop captures target lane + slot start time
-- resize intent (upward vs downward)
+- edge-drag resize intent (top vs bottom + snapped slot delta)
 - rendering of state color + time-position + extent-based height
 
 No queue decision logic or domain math is implemented directly in UI.
@@ -48,6 +48,7 @@ This separation is key for portability and future queue payload evolution.
 - Items include real scheduling coordinates (day + start time)
 - Operations: `create`/`update`/`delete`
 - Extent changes are already represented in state, enabling future queue payload inclusion without changing the model shape
+- Extent changes for committed items are meaningful queue deltas when baseline extent metadata exists
 
 ## Overlap policy (POC)
 

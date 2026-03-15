@@ -93,8 +93,8 @@ export const movePlacedBlockWithinLane = (state: BoardState, blockId: TimeBlockI
   return appendPlacement(state, blockId, placement.laneId, startTime);
 };
 
-export const extendBlockDownward = (state: BoardState, blockId: TimeBlockId, minutes: number): BoardState =>
-  resizePlacedBlock(state, blockId, { direction: 'downward', minutes });
+export const resizeBlockFromBottom = (state: BoardState, blockId: TimeBlockId, slotDelta: number): BoardState =>
+  resizePlacedBlock(state, blockId, { edge: 'bottom', slotDelta });
 
-export const extendBlockUpward = (state: BoardState, blockId: TimeBlockId, minutes: number): BoardState =>
-  resizePlacedBlock(state, blockId, { direction: 'upward', minutes });
+export const resizeBlockFromTop = (state: BoardState, blockId: TimeBlockId, slotDelta: number): BoardState =>
+  resizePlacedBlock(state, blockId, { edge: 'top', slotDelta });

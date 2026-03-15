@@ -12,7 +12,15 @@ import type {
   TimeBlockId,
   TimeOfDay
 } from './board-types';
-import { clampToPlanningWindow, isWithinPlanningWindow, shiftTimeByMinutes, SLOT_MINUTES } from './time-slot';
+import {
+  clampToPlanningWindow,
+  isWithinPlanningWindow,
+  PLANNING_WINDOW_END,
+  PLANNING_WINDOW_START,
+  shiftTimeByMinutes,
+  SLOT_MINUTES,
+  toMinutesOfDay
+} from './time-slot';
 
 export const getPlacementForBlock = (state: BoardState, blockId: TimeBlockId) =>
   state.placements.find((placement) => placement.blockId === blockId);
@@ -76,7 +84,10 @@ const queueItemForBlock = (state: BoardState, blockId: TimeBlockId): QueueItem |
   const committed = placement.committedPlacement;
 
   if (placement.laneId === committed.laneId && placement.startTime === committed.startTime) {
-    return undefined;
+    const baselineExtent = committed.extentMinutes;
+    if (baselineExtent === undefined || baselineExtent === block.extentMinutes) {
+      return undefined;
+    }
   }
 
   if (placement.laneId === 'unplanned') {
@@ -177,9 +188,13 @@ export const removePlacement = (state: BoardState, blockId: TimeBlockId): BoardS
 };
 
 type ResizeInstruction = {
-  direction: 'upward' | 'downward';
-  minutes: number;
+  edge: 'top' | 'bottom';
+  slotDelta: number;
 };
+
+const MINIMUM_EXTENT_MINUTES = SLOT_MINUTES;
+
+const clamp = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value));
 
 export const resizePlacedBlock = (state: BoardState, blockId: TimeBlockId, instruction: ResizeInstruction): BoardState => {
   const block = getBlockById(state, blockId);
@@ -189,11 +204,36 @@ export const resizePlacedBlock = (state: BoardState, blockId: TimeBlockId, instr
     return state;
   }
 
-  const delta = Math.max(SLOT_MINUTES, instruction.minutes);
-  const nextExtent = block.extentMinutes + delta;
-  const nextStart = instruction.direction === 'upward' ? shiftTimeByMinutes(placement.startTime, -delta) : placement.startTime;
+  const requestedDelta = Math.round(instruction.slotDelta) * SLOT_MINUTES;
+  if (requestedDelta === 0) {
+    return state;
+  }
+
+  const planningStart = toMinutesOfDay(PLANNING_WINDOW_START);
+  const planningEnd = toMinutesOfDay(PLANNING_WINDOW_END);
+  const currentStart = toMinutesOfDay(placement.startTime);
+  const currentEnd = currentStart + block.extentMinutes;
+  const maxRetract = block.extentMinutes - MINIMUM_EXTENT_MINUTES;
+
+  let nextStart = placement.startTime;
+  let nextExtent = block.extentMinutes;
+
+  if (instruction.edge === 'bottom') {
+    const maxExtend = planningEnd - currentEnd;
+    const boundedDelta = clamp(requestedDelta, -maxRetract, maxExtend);
+    nextExtent = block.extentMinutes + boundedDelta;
+  } else {
+    const maxExtendUpward = currentStart - planningStart;
+    const boundedDelta = clamp(requestedDelta, -maxExtendUpward, maxRetract);
+    nextStart = shiftTimeByMinutes(placement.startTime, boundedDelta);
+    nextExtent = block.extentMinutes - boundedDelta;
+  }
 
   if (!isWithinPlanningWindow(nextStart, nextExtent)) {
+    return state;
+  }
+
+  if (nextStart === placement.startTime && nextExtent === block.extentMinutes) {
     return state;
   }
 

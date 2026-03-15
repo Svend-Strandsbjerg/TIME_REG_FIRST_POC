@@ -5,11 +5,11 @@ import { TimeBlockCard } from './TimeBlockCard';
 type Props = {
   lane: DayLaneView;
   onDropBlock: (blockId: string, laneId: string, startTime: string) => void;
-  onExtendUpward: (blockId: string) => void;
-  onExtendDownward: (blockId: string) => void;
+  onResizeTop: (blockId: string, slotDelta: number) => void;
+  onResizeBottom: (blockId: string, slotDelta: number) => void;
 };
 
-export const DayLaneColumn = ({ lane, onDropBlock, onExtendDownward, onExtendUpward }: Props) => (
+export const DayLaneColumn = ({ lane, onDropBlock, onResizeBottom, onResizeTop }: Props) => (
   <section className="lane">
     <header>
       <h3>{lane.lane.label}</h3>
@@ -51,8 +51,8 @@ export const DayLaneColumn = ({ lane, onDropBlock, onExtendDownward, onExtendUpw
           <TimeBlockCard
             card={card}
             fromLaneId={lane.lane.id}
-            onExtendDownward={onExtendDownward}
-            onExtendUpward={onExtendUpward}
+            onResizeBottom={onResizeBottom}
+            onResizeTop={onResizeTop}
           />
         </div>
       ))}
