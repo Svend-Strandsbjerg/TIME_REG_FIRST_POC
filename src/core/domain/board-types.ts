@@ -10,11 +10,14 @@ export type DayKey =
 export type DayLaneId = string;
 export type PlacementId = string;
 
+export type BlockState = string;
+
 export type TimeBlock = {
   id: TimeBlockId;
   title: string;
   durationMinutes: number;
   source: 'mock-api' | 'external-api';
+  state: BlockState;
   metadata?: Record<string, unknown>;
 };
 
@@ -30,8 +33,6 @@ export type PlacementSlot = {
   timeSlot: string;
 };
 
-export type PlacementState = 'uncommitted' | 'committed';
-
 export type CommittedPlacement = {
   laneId: DayLaneId;
   order: number;
@@ -43,7 +44,6 @@ export type PlacedBlock = {
   blockId: TimeBlockId;
   laneId: DayLaneId;
   order: number;
-  state: PlacementState;
   committedPlacement?: CommittedPlacement;
 };
 

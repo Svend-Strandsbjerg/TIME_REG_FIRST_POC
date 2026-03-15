@@ -10,6 +10,7 @@ export const createTimeBlockFromActivityInstance = (
   title: activity.title,
   durationMinutes: instance.suggestedDurationMinutes,
   source,
+  state: 'uncommitted',
   metadata: {
     activityId: activity.id,
     activitySource: activity.source,

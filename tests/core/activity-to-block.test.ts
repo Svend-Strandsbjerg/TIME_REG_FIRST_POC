@@ -20,6 +20,7 @@ describe('activity-to-block', () => {
 
     expect(block.id).toBe('block-activity-100-instance-100');
     expect(block.durationMinutes).toBe(90);
+    expect(block.state).toBe('uncommitted');
     expect(block.metadata).toMatchObject({
       activityId: 'activity-100',
       activityInstanceId: 'instance-100',

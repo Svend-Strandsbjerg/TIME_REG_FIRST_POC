@@ -33,6 +33,7 @@ const createMockBlocks = (): TimeBlock[] => {
     if (index === 0) {
       return {
         ...block,
+        state: 'committed',
         metadata: {
           ...block.metadata,
           committedPlacement: {
