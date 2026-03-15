@@ -26,7 +26,7 @@ Owns interaction intent only:
 
 - drag/drop captures target lane + slot start time
 - edge-drag resize intent (top vs bottom + snapped slot delta)
-- rendering of state color + time-position + extent-based height
+- rendering of state color (`template` purple, `imported` blue, `uncommitted` red, `committed` orange) + time-position + extent-based height
 
 No queue decision logic or domain math is implemented directly in UI.
 
@@ -36,7 +36,7 @@ Owns adapter boundaries and placeholder mappers.
 
 ## State / extent / placement separation
 
-- `state` controls lifecycle semantics (uncommitted vs committed baseline behavior)
+- `state` controls lifecycle semantics (`template`, `imported`, `uncommitted`, `committed`)
 - `extentMinutes` controls duration footprint
 - `placement` controls day + start-time schedule position
 
@@ -53,3 +53,10 @@ This separation is key for portability and future queue payload evolution.
 ## Overlap policy (POC)
 
 The planner currently allows deterministic free placement without advanced overlap resolution. This is documented and intentionally deferred.
+
+
+## Template spawn behavior
+
+- `template` candidates stay in the unplanned list permanently as a reusable palette source.
+- Dragging a template into a lane creates a new block instance with `state=uncommitted`.
+- Spawned blocks keep template provenance metadata (`templateSourceBlockId`, `templatePspElement`).

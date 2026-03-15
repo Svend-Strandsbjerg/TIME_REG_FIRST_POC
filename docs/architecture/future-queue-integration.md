@@ -7,7 +7,7 @@ The current phase projects queue items from time-aware placements:
 - one queue (`planning-queue`)
 - status `paused`
 - operations `create` / `update` / `delete`
-- queue item includes real scheduling coordinates (`dayKey`, `timeSlot`)
+- queue item includes real scheduling coordinates (`dayKey`, `startTime`, derived `endTime`, `interval`)
 
 ## Current mapping behavior
 
@@ -33,3 +33,10 @@ This avoids duplicate duration fields and keeps contracts aligned with foundatio
 ## Forward compatibility
 
 Extent changes are not yet emitted as distinct queue semantics in this POC, but the model already supports introducing that behavior without schema redesign.
+
+
+## Future source/template expansion
+
+- Imported blocks can later be materialized from Outlook calendar, Azure records, or SCRUM/task signals while keeping the same `state=imported` core contract.
+- Template blocks can later represent curated/default PSP libraries while keeping reusable candidate palette behavior.
+- Queue/log interval remains derived from placement start time plus block extent.

@@ -19,9 +19,10 @@ export const QueueLogPanel = ({ queue }: Props) => (
       {queue.items.map((item) => (
         <li key={item.id} className="queue-item">
           <strong>{item.title}</strong>
-          <span>
-            {item.dayKey} — {item.timeSlot}
-          </span>
+          <span>queue ID: {item.queueId}</span>
+          <span>item ID: {item.id}</span>
+          <span>day: {item.dayKey}</span>
+          <span>interval: {item.interval}</span>
           <span>operation: {item.operation}</span>
           <small>{item.reason}</small>
         </li>

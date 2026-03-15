@@ -3,7 +3,7 @@
 ## Core concepts
 
 - `TimeBlock`
-  - `state` (foundation-aligned lifecycle abstraction)
+  - `state` (foundation-aligned lifecycle abstraction: `template`, `imported`, `uncommitted`, `committed`)
   - `extentMinutes` (duration footprint)
 - `Placement`
   - `laneId`
@@ -69,3 +69,13 @@ Queue projection now uses actual scheduled start time (`timeSlot`) and day key, 
 `DayLaneView.totalHours` is computed as:
 
 `sum(extentMinutes) / 60`
+
+
+## Imported vs template semantics
+
+- `imported`: inferred from external work signals (Outlook/Azure/SCRUM/task systems); placeable like normal candidate blocks.
+- `template`: reusable standard PSP candidate; dragging does not consume source card and instead spawns a new actionable block (`uncommitted`) with template provenance metadata.
+
+## Interval derivation
+
+Queue/log interval is deterministic: `interval = startTime + ' - ' + (startTime + extentMinutes)`.

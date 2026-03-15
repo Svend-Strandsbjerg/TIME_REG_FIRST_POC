@@ -10,7 +10,7 @@ export type DayKey =
 export type DayLaneId = string;
 export type PlacementId = string;
 
-export type BlockState = string;
+export type BlockState = 'template' | 'imported' | 'uncommitted' | 'committed';
 export type TimeOfDay = string;
 
 export type TimeBlock = {
@@ -57,7 +57,9 @@ export type QueueItem = {
   blockId: TimeBlockId;
   title: string;
   dayKey: DayKey;
-  timeSlot: TimeOfDay;
+  startTime: TimeOfDay;
+  endTime: TimeOfDay;
+  interval: string;
   operation: QueueOperation;
   reason: string;
 };

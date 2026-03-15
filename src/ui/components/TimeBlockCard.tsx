@@ -75,6 +75,8 @@ export const TimeBlockCard = ({ card, fromLaneId, onResizeBottom, onResizeTop }:
         />
       )}
       <strong>{card.block.title}</strong>
+      {card.isTemplate ? <small>Reusable template</small> : null}
+      {card.templateSourceBlockId ? <small>From template: {card.templateSourceBlockId}</small> : null}
       <span>{card.block.extentMinutes} min</span>
       {card.startTime && card.endTime ? (
         <small>
