@@ -21,8 +21,9 @@ export const DayLaneColumn = ({ lane, onDropBlock }: Props) => (
   >
     <header>
       <h3>{lane.lane.label}</h3>
-      <span>{lane.placedBlocks.length} planned</span>
+      <span>{lane.totalHours}h</span>
     </header>
+    <span className="lane-summary">{lane.placedBlocks.length} planned</span>
     {lane.placedBlocks.length === 0 ? <p className="drop-hint">Drop blocks here</p> : null}
     <div className="lane-blocks">
       {lane.placedBlocks.map((card) => (

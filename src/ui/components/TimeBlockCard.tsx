@@ -17,10 +17,11 @@ export const TimeBlockCard = ({ card, fromLaneId }: Props) => (
   <article
     draggable
     onDragStart={(event) => writeBlockPayload(event, { blockId: card.block.id, fromLaneId })}
-    className="time-block-card"
+    className={`time-block-card time-block-card--${card.state}`}
     style={{ minHeight: HEIGHT[card.size] }}
   >
     <strong>{card.block.title}</strong>
     <span>{card.block.durationMinutes} min</span>
+    {card.timeSlot ? <small>{card.timeSlot}</small> : null}
   </article>
 );
