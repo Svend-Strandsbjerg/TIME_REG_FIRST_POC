@@ -6,9 +6,10 @@ type Props = {
   onDropBlock: (blockId: string, laneId: string, startTime: string) => void;
   onResizeTop: (blockId: string, slotDelta: number) => void;
   onResizeBottom: (blockId: string, slotDelta: number) => void;
+  onOpenDescriptionEditor: (blockId: string) => void;
 };
 
-export const WeekSwimlanes = ({ lanes, onDropBlock, onResizeBottom, onResizeTop }: Props) => (
+export const WeekSwimlanes = ({ lanes, onDropBlock, onResizeBottom, onResizeTop, onOpenDescriptionEditor }: Props) => (
   <section className="week-grid">
     {lanes.map((lane) => (
       <DayLaneColumn
@@ -17,6 +18,7 @@ export const WeekSwimlanes = ({ lanes, onDropBlock, onResizeBottom, onResizeTop 
         onDropBlock={onDropBlock}
         onResizeBottom={onResizeBottom}
         onResizeTop={onResizeTop}
+        onOpenDescriptionEditor={onOpenDescriptionEditor}
       />
     ))}
   </section>

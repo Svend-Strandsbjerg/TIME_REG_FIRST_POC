@@ -149,25 +149,6 @@ const withQueueProjection = (state: BoardState): BoardState => ({
   queue: reprojectQueue(state)
 });
 
-const restoreCommittedPlacementIfNeeded = (
-  block: TimeBlock,
-  placement: PlacedBlock,
-  targetLaneId: DayLaneId,
-  startTime: TimeOfDay
-): { laneId: DayLaneId; startTime: TimeOfDay } => {
-  if (block.state === 'committed' && placement.laneId === 'unplanned' && placement.committedPlacement) {
-    return {
-      laneId: placement.committedPlacement.laneId,
-      startTime: placement.committedPlacement.startTime
-    };
-  }
-
-  return {
-    laneId: targetLaneId,
-    startTime: clampToPlanningWindow(startTime)
-  };
-};
-
 export const appendPlacement = (state: BoardState, blockId: TimeBlockId, laneId: DayLaneId, startTime: TimeOfDay): BoardState => {
   const existing = getPlacementForBlock(state, blockId);
   const block = getBlockById(state, blockId);
@@ -181,8 +162,7 @@ export const appendPlacement = (state: BoardState, blockId: TimeBlockId, laneId:
           return placement;
         }
 
-        const target = restoreCommittedPlacementIfNeeded(block, placement, laneId, startTime);
-        return { ...placement, laneId: target.laneId, startTime: target.startTime };
+        return { ...placement, laneId, startTime: clampToPlanningWindow(startTime) };
       })
     : state.placements.concat({
         id: `placement-${blockId}`,

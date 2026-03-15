@@ -52,3 +52,8 @@ Core/application own:
 - Imported-candidate double-click auto-placement is UI interaction logic that calls core application commands.
 - Side-by-side overlap layout is UI rendering logic using core overlap-group metadata.
 - Core remains responsible for canonical schedule data, interval derivation, and identifier generation.
+
+## Description editing portability
+
+- The description popup/modal is a UI interaction detail in the React adapter.
+- The description value itself is stored in shared block payload metadata, so non-React UIs can edit the same field with different interaction patterns while reusing core/application logic.

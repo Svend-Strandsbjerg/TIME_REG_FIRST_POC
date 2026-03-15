@@ -6,15 +6,22 @@ import {
   placeBlockOnLane,
   resizeBlockFromBottom,
   resizeBlockFromTop,
-  returnBlockToPool
+  returnBlockToPool,
+  updateBlockDescription
 } from '../core/application/board-service';
 import type { BoardState } from '../core/domain/board-types';
 import { toQueueReadyEntries } from '../integration/async/queue-handoff';
 import { MockBlockSource } from '../integration/inbound/mock-block-source';
 import { TimeRegistrationBoard } from '../ui/components/TimeRegistrationBoard';
+import { DescriptionModal } from '../ui/components/DescriptionModal';
+
+type DescriptionEditorState = {
+  blockId: string;
+};
 
 export const App = () => {
   const [state, setState] = useState<BoardState | null>(null);
+  const [descriptionEditor, setDescriptionEditor] = useState<DescriptionEditorState | null>(null);
 
   useEffect(() => {
     const source = new MockBlockSource();
@@ -26,6 +33,10 @@ export const App = () => {
   const planningView = useMemo(() => (state ? buildPlanningView(state) : null), [state]);
   const draftProjection = useMemo(() => (state ? convertPlacedBlockToTimeEntryDraft(state) : []), [state]);
   const queueReadyProjection = useMemo(() => toQueueReadyEntries(draftProjection, 'planning-week-preview'), [draftProjection]);
+  const selectedBlock = useMemo(
+    () => state?.blocks.find((candidate) => candidate.id === descriptionEditor?.blockId),
+    [descriptionEditor?.blockId, state]
+  );
 
   if (!state || !planningView) {
     return <p>Loading planning board...</p>;
@@ -48,6 +59,21 @@ export const App = () => {
         onAutoPlaceImported={(blockId) =>
           setState((current) => (current ? autoPlaceImportedBlock(current, blockId) : current))
         }
+        onOpenDescriptionEditor={(blockId) => setDescriptionEditor({ blockId })}
+      />
+      <DescriptionModal
+        isOpen={Boolean(descriptionEditor)}
+        blockTitle={selectedBlock?.title}
+        initialDescription={typeof selectedBlock?.metadata?.description === 'string' ? selectedBlock.metadata.description : ''}
+        onCancel={() => setDescriptionEditor(null)}
+        onSave={(description) => {
+          if (descriptionEditor) {
+            setState((current) =>
+              current ? updateBlockDescription(current, descriptionEditor.blockId, description) : current
+            );
+          }
+          setDescriptionEditor(null);
+        }}
       />
       <section className="draft-preview">
         <h2>Future integration projections</h2>

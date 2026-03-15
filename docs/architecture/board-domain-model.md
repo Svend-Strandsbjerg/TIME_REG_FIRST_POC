@@ -100,3 +100,11 @@ UI double-click auto-placement uses this metadata to place imported blocks direc
 ## Concurrent placement concept
 
 Multiple placements are allowed in the same lane/time interval. Projection adds overlap-group metadata (`layoutColumn`, `layoutColumnCount`) so UI can render side-by-side blocks without visual overlap.
+
+## Corrective behavior updates (POC iteration)
+
+- Imported candidates are now recoverable source entries. If an imported block is auto-placed or dragged into a swimlane and later removed, it returns to the imported candidate list instead of disappearing.
+- Committed placed color is baseline-driven: yellow when placement matches committed baseline (`day/lane`, `startTime`, and optional baseline extent), red otherwise.
+- Committed entries removed from planning remain represented as unplanned changed candidates (red) instead of disappearing.
+- PSP template defaults are fixed to `extentMinutes=30`; template cards remain label-only in candidate view and only acquire interval data after placement.
+- Block payload metadata now includes `description`, editable via swimlane double-click interaction; imported entries can start with source description payload.

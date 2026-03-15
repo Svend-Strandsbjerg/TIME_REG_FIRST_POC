@@ -66,7 +66,7 @@ export const TimeBlockCard = ({ card, fromLaneId, onDoubleClick, onResizeBottom,
         writeBlockPayload(event, { blockId: card.block.id, fromLaneId });
       }}
       onDoubleClick={() => onDoubleClick?.(card.block.id)}
-      className={`time-block-card time-block-card--${card.state} time-block-card--${visualContext}`}
+      className={`time-block-card time-block-card--${card.visualState} time-block-card--${visualContext}`}
       style={card.heightMinutes ? { height: `${extentToCalendarHeight(card.heightMinutes)}px` } : undefined}
     >
       {(onResizeTop || onResizeBottom) && (
@@ -80,7 +80,7 @@ export const TimeBlockCard = ({ card, fromLaneId, onDoubleClick, onResizeBottom,
       <strong>{card.block.title}</strong>
       {card.isTemplate ? <small>Reusable template</small> : null}
       {card.templateSourceBlockId ? <small>From template: {card.templateSourceBlockId}</small> : null}
-      <span>{card.interval ?? 'Interval TBD'}</span>
+      {card.interval ? <span>{card.interval}</span> : null}
       {(onResizeTop || onResizeBottom) && (
         <div
           className="resize-handle resize-handle--bottom"

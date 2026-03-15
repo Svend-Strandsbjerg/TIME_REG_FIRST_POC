@@ -5,6 +5,7 @@ import type { BlockState, BoardState, DayLane, QueueItem, TimeBlock, TimeEntryDr
 export type TimeBlockCardView = {
   block: TimeBlock;
   state: BlockState;
+  visualState: BlockState;
   isTemplate: boolean;
   templateSourceBlockId?: string;
   startTime?: TimeOfDay;
@@ -26,6 +27,7 @@ export type DayLaneView = {
 export type WeeklyBoardView = {
   importedCandidates: TimeBlockCardView[];
   templateCandidates: TimeBlockCardView[];
+  changedCommittedCandidates: TimeBlockCardView[];
   lanes: DayLaneView[];
   summary: {
     plannedBlocks: number;
@@ -76,6 +78,39 @@ const withParallelLayout = (placedBlocks: TimeBlockCardView[]): TimeBlockCardVie
   );
 };
 
+const isCommittedPlacementMatchingBaseline = (state: BoardState, blockId: string): boolean => {
+  const block = state.blocks.find((candidate) => candidate.id === blockId);
+  const placement = state.placements.find((candidate) => candidate.blockId === blockId);
+
+  if (!block || block.state !== 'committed' || !placement?.committedPlacement || placement.laneId === 'unplanned') {
+    return false;
+  }
+
+  const baseline = placement.committedPlacement;
+  if (placement.laneId !== baseline.laneId || placement.startTime !== baseline.startTime) {
+    return false;
+  }
+
+  return baseline.extentMinutes === undefined || baseline.extentMinutes === block.extentMinutes;
+};
+
+const toCandidateCard = (block: TimeBlock): TimeBlockCardView => {
+  const importedStartTime = typeof block.metadata?.importedStartTime === 'string' ? block.metadata.importedStartTime : undefined;
+  const importedEndTime = typeof block.metadata?.importedEndTime === 'string' ? block.metadata.importedEndTime : undefined;
+  const resolvedEndTime = importedStartTime ? importedEndTime ?? deriveEndTime(importedStartTime, block.extentMinutes) : undefined;
+
+  return {
+    block,
+    state: block.state,
+    visualState: block.state,
+    isTemplate: block.state === 'template',
+    templateSourceBlockId: typeof block.metadata?.templateSourceBlockId === 'string' ? block.metadata.templateSourceBlockId : undefined,
+    startTime: block.state === 'imported' ? importedStartTime : undefined,
+    endTime: block.state === 'imported' ? resolvedEndTime : undefined,
+    interval: block.state === 'imported' && importedStartTime && resolvedEndTime ? formatInterval(importedStartTime, resolvedEndTime) : undefined
+  };
+};
+
 export const buildPlanningView = (state: BoardState): WeeklyBoardView => {
   const slots = generatePlanningSlots();
   const planningStartMinutes = toMinutesOfDay(slots[0] ?? '06:00');
@@ -83,25 +118,22 @@ export const buildPlanningView = (state: BoardState): WeeklyBoardView => {
   const placedBlockIds = new Set(state.placements.filter((placement) => placement.laneId !== 'unplanned').map((placement) => placement.blockId));
   const blockLookup = new Map(state.blocks.map((block) => [block.id, block]));
 
-  const availableBlocks = state.blocks
-    .filter((block) => block.state === 'template' || (block.state === 'imported' && !placedBlockIds.has(block.id)))
-    .map((block) => {
-      const importedStartTime = typeof block.metadata?.importedStartTime === 'string' ? block.metadata.importedStartTime : undefined;
-      const importedEndTime = typeof block.metadata?.importedEndTime === 'string' ? block.metadata.importedEndTime : undefined;
-      const defaultTemplateStart = block.state === 'template' ? '08:30' : undefined;
-      const resolvedStartTime = importedStartTime ?? defaultTemplateStart;
-      const resolvedEndTime = resolvedStartTime ? importedEndTime ?? deriveEndTime(resolvedStartTime, block.extentMinutes) : undefined;
+  const importedCandidates = state.blocks
+    .filter((block) => block.state === 'imported' && !placedBlockIds.has(block.id))
+    .map((block) => toCandidateCard(block));
 
-      return {
-        block,
-        state: block.state,
-        isTemplate: block.state === 'template',
-        templateSourceBlockId: typeof block.metadata?.templateSourceBlockId === 'string' ? block.metadata.templateSourceBlockId : undefined,
-        startTime: resolvedStartTime,
-        endTime: resolvedEndTime,
-        interval: resolvedStartTime && resolvedEndTime ? formatInterval(resolvedStartTime, resolvedEndTime) : undefined
-      };
-    });
+  const templateCandidates = state.blocks
+    .filter((block) => block.state === 'template')
+    .map((block) => toCandidateCard(block));
+
+  const changedCommittedCandidates = state.placements
+    .filter((placement) => placement.laneId === 'unplanned')
+    .map((placement) => blockLookup.get(placement.blockId))
+    .filter((block): block is TimeBlock => block !== undefined && block.state === 'committed')
+    .map((block) => ({
+      ...toCandidateCard(block),
+      visualState: 'uncommitted' as const
+    }));
 
   const lanes = [...state.lanes]
     .sort((a, b) => a.order - b.order)
@@ -119,10 +151,13 @@ export const buildPlanningView = (state: BoardState): WeeklyBoardView => {
         }
 
         const endTime = deriveEndTime(placement.startTime, block.extentMinutes);
+        const visualState =
+          block.state === 'committed' && isCommittedPlacementMatchingBaseline(state, block.id) ? 'committed' : 'uncommitted';
 
         placedBlocks.push({
           block,
           state: block.state,
+          visualState,
           isTemplate: block.state === 'template',
           templateSourceBlockId: typeof block.metadata?.templateSourceBlockId === 'string' ? block.metadata.templateSourceBlockId : undefined,
           startTime: placement.startTime,
@@ -144,16 +179,14 @@ export const buildPlanningView = (state: BoardState): WeeklyBoardView => {
       };
     });
 
-  const importedCandidates = availableBlocks.filter((card) => card.state === 'imported');
-  const templateCandidates = availableBlocks.filter((card) => card.state === 'template');
-
   return {
     importedCandidates,
     templateCandidates,
+    changedCommittedCandidates,
     lanes,
     summary: {
       plannedBlocks: placedBlockIds.size,
-      unplannedBlocks: importedCandidates.length + templateCandidates.length
+      unplannedBlocks: importedCandidates.length + templateCandidates.length + changedCommittedCandidates.length
     },
     queue: state.queue
   };

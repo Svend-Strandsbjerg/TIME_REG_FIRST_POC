@@ -11,6 +11,7 @@ Owns framework-neutral model and rules:
 - committed baseline snapshot (`laneId`, `startTime`, optional baseline extent)
 - deterministic slot/time arithmetic for 06:00-18:00 window (30-minute grid)
 - queue projection rules derived from state + placement deltas
+- block payload metadata (including editable `description`)
 
 ### Application (`src/core/application`)
 
@@ -26,8 +27,9 @@ Owns interaction intent only:
 
 - drag/drop captures target lane + slot start time
 - edge-drag resize intent (top vs bottom + snapped slot delta)
-- rendering of candidate color (`template` purple, `imported` blue) and placed color (`uncommitted` red, `committed` yellow) + time-position + extent-based height
+- rendering of candidate color (`template` purple, `imported` blue, changed committed red) and placed color from baseline comparison (`red` changed vs `yellow` baseline match) + time-position + extent-based height
 - imported-candidate double-click interaction for auto-placement
+- placed-block double-click opens description editor modal
 - side-by-side overlap layout rendering based on core-provided schedule intervals
 
 No queue decision logic or domain math is implemented directly in UI.
@@ -69,3 +71,16 @@ The planner allows concurrent placements. Core projections annotate each placed 
 - Queue IDs are deterministic identifiers generated from a stable scope hash (`createQueueId`).
 - Queue item IDs are deterministic identifiers generated from queue ID + block ID + operation + day + start time.
 - Labels/titles remain human-readable fields and are not used as IDs.
+
+
+## Committed baseline comparison
+
+- Placed committed blocks are yellow only when they exactly match committed baseline (`laneId`, `startTime`, and optional baseline extent).
+- Any move/resize/removal makes them red (changed).
+- Returning exactly to baseline deterministically restores yellow state and clears queue change projection.
+
+## Candidate recoverability
+
+- Imported source candidates are recoverable: removing from swimlane re-exposes the imported candidate.
+- Committed blocks removed from swimlanes remain visible as red changed candidates (unplanned lane projection).
+- Template candidates are perpetual sources and spawn real uncommitted planning entries.
