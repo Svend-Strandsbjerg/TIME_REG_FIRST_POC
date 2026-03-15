@@ -34,10 +34,13 @@ Duration remains on the block via `extentMinutes`. End time is derived from `sta
 
 ## Queue behavior (time-aware)
 
-- Uncommitted block placed => queue `create` with day + actual start time
+- Template block is a reusable PSP source card (purple); dragging it spawns a new actionable block while the template remains in candidates
+- Imported block is an external-source candidate signal (blue) and behaves like normal placeable candidate flow
+- Uncommitted/imported block placed => queue `create` with day + derived interval (`start - end`)
 - Uncommitted block removed => queue item removed
 - Committed block removed from baseline => queue `delete`
 - Committed block moved day/time => queue `update`
+- Queue/log panel shows `queue ID`, `item ID`, `day`, and full interval (derived from placement start + extent)
 - Committed block restored => queue item removed
 
 Committed baseline now tracks day + start time (and optional extent baseline metadata).

@@ -37,6 +37,22 @@ const parseCommittedMetadata = (block: TimeBlock): CommittedMetadata | undefined
   return { laneId, startTime: clampToPlanningWindow(startTime), extentMinutes };
 };
 
+
+const createSpawnedBlockFromTemplate = (state: BoardState, templateBlock: TimeBlock): TimeBlock => {
+  const siblingCount = state.blocks.filter((candidate) => candidate.metadata?.templateSourceBlockId === templateBlock.id).length;
+
+  return {
+    ...templateBlock,
+    id: `spawn-${templateBlock.id}-${siblingCount + 1}`,
+    state: 'uncommitted',
+    metadata: {
+      ...templateBlock.metadata,
+      templateSourceBlockId: templateBlock.id,
+      templatePspElement: templateBlock.metadata?.pspElement ?? templateBlock.title
+    }
+  };
+};
+
 const createInitialPlacements = (blocks: TimeBlock[]): PlacedBlock[] => {
   const laneById = new Map(WEEK_LANES.map((lane) => [lane.id, lane]));
   const placements: PlacedBlock[] = [];
@@ -76,8 +92,27 @@ export const createBoardWeek = (blocks: TimeBlock[]): BoardState =>
     }
   });
 
-export const placeBlockOnLane = (state: BoardState, blockId: TimeBlockId, laneId: DayLaneId, startTime: TimeOfDay): BoardState =>
-  appendPlacement(state, blockId, laneId, startTime);
+export const placeBlockOnLane = (state: BoardState, blockId: TimeBlockId, laneId: DayLaneId, startTime: TimeOfDay): BoardState => {
+  const block = state.blocks.find((candidate) => candidate.id === blockId);
+  if (!block) {
+    return state;
+  }
+
+  if (block.state !== 'template') {
+    return appendPlacement(state, blockId, laneId, startTime);
+  }
+
+  const spawnedBlock = createSpawnedBlockFromTemplate(state, block);
+  return appendPlacement(
+    {
+      ...state,
+      blocks: state.blocks.concat(spawnedBlock)
+    },
+    spawnedBlock.id,
+    laneId,
+    startTime
+  );
+};
 
 export const movePlacedBlock = (state: BoardState, blockId: TimeBlockId, targetLaneId: DayLaneId, startTime: TimeOfDay): BoardState =>
   appendPlacement(state, blockId, targetLaneId, startTime);

@@ -14,6 +14,7 @@ import type {
 } from './board-types';
 import {
   clampToPlanningWindow,
+  deriveEndTime,
   isWithinPlanningWindow,
   PLANNING_WINDOW_END,
   PLANNING_WINDOW_START,
@@ -45,16 +46,23 @@ const buildQueueItem = (
   slot: PlacementSlot,
   operation: QueueOperation,
   reason: string
-): QueueItem => ({
+): QueueItem => {
+  const startTime = slot.timeSlot;
+  const endTime = deriveEndTime(startTime, block.extentMinutes);
+
+  return {
   id: `queue-item-${block.id}`,
   queueId,
   blockId: block.id,
   title: block.title,
   dayKey: slot.dayKey,
-  timeSlot: slot.timeSlot,
+  startTime,
+  endTime,
+  interval: `${startTime} - ${endTime}`,
   operation,
   reason
-});
+};
+};
 
 const laneLookupFromState = (state: BoardState) => new Map(state.lanes.map((lane) => [lane.id, lane]));
 
@@ -67,13 +75,13 @@ const queueItemForBlock = (state: BoardState, blockId: TimeBlockId): QueueItem |
 
   const laneLookup = laneLookupFromState(state);
 
-  if (block.state === 'uncommitted') {
+  if (block.state === 'uncommitted' || block.state === 'imported') {
     return buildQueueItem(
       state.queue.id,
       block,
       buildSlot(laneLookup, placement.laneId, placement.startTime),
       'create',
-      'Uncommitted block is placed and pending creation in target system.'
+      'Candidate block is placed and pending creation in target system.'
     );
   }
 
@@ -110,7 +118,7 @@ const reprojectQueue = (state: BoardState): Queue => {
 
   return {
     ...state.queue,
-    items: queueItems.sort((a, b) => a.dayKey.localeCompare(b.dayKey) || a.timeSlot.localeCompare(b.timeSlot))
+    items: queueItems.sort((a, b) => a.dayKey.localeCompare(b.dayKey) || a.startTime.localeCompare(b.startTime))
   };
 };
 

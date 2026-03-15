@@ -98,6 +98,17 @@ body {
   box-sizing: border-box;
 }
 
+
+.time-block-card--template {
+  border-color: #7c3aed;
+  background: #ede9fe;
+}
+
+.time-block-card--imported {
+  border-color: #2563eb;
+  background: #dbeafe;
+}
+
 .time-block-card--uncommitted {
   border-color: #ef4444;
   background: #fee2e2;

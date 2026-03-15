@@ -25,7 +25,16 @@ const blocks: TimeBlock[] = [
       }
     }
   },
-  { id: 'b2', title: 'Internal workshop', extentMinutes: 120, source: 'mock-api', state: 'uncommitted' }
+  { id: 'b2', title: 'Internal workshop', extentMinutes: 120, source: 'mock-api', state: 'uncommitted' },
+  { id: 'b3', title: 'Outlook follow-up', extentMinutes: 90, source: 'external-api', state: 'imported' },
+  {
+    id: 'b4',
+    title: 'Standard PSP planning',
+    extentMinutes: 60,
+    source: 'mock-api',
+    state: 'template',
+    metadata: { pspElement: 'PSP-STANDARD' }
+  }
 ];
 
 describe('board-service queue simulation', () => {
@@ -45,7 +54,9 @@ describe('board-service queue simulation', () => {
       queueId: 'planning-queue',
       blockId: 'b2',
       dayKey: 'tuesday',
-      timeSlot: '10:00',
+      startTime: '10:00',
+      endTime: '12:00',
+      interval: '10:00 - 12:00',
       operation: 'create'
     });
   });
@@ -56,7 +67,9 @@ describe('board-service queue simulation', () => {
 
     expect(movedCommitted.queue.items.find((item) => item.blockId === 'b1')).toMatchObject({
       dayKey: 'tuesday',
-      timeSlot: '10:00',
+      startTime: '10:00',
+      endTime: '11:00',
+      interval: '10:00 - 11:00',
       operation: 'update'
     });
   });
@@ -168,7 +181,48 @@ describe('board-service queue simulation', () => {
     expect(resized.queue.items.find((item) => item.blockId === 'b1')).toMatchObject({
       operation: 'update',
       dayKey: 'monday',
-      timeSlot: '08:30'
+      startTime: '08:30'
+    });
+  });
+
+
+  it('placing an imported candidate creates a queue create item and exposes interval', () => {
+    const board = createBoardWeek(blocks);
+    const placed = placeBlockOnLane(board, 'b3', 'lane-tuesday', '09:00');
+    const item = placed.queue.items.find((candidate) => candidate.blockId === 'b3');
+
+    expect(item).toMatchObject({
+      dayKey: 'tuesday',
+      startTime: '09:00',
+      endTime: '10:30',
+      interval: '09:00 - 10:30',
+      operation: 'create'
+    });
+  });
+
+  it('placing a template keeps source candidate and creates actionable spawned placement', () => {
+    const board = createBoardWeek(blocks);
+    const placed = placeBlockOnLane(board, 'b4', 'lane-monday', '08:30');
+    const view = buildPlanningView(placed);
+
+    expect(view.availableBlocks.some((card) => card.block.id === 'b4' && card.isTemplate)).toBe(true);
+
+    const spawned = placed.blocks.find((block) => block.metadata?.templateSourceBlockId === 'b4');
+    expect(spawned).toBeDefined();
+    expect(spawned?.state).toBe('uncommitted');
+
+    const mondayBlockIds = view.lanes.find((lane) => lane.lane.id === 'lane-monday')?.placedBlocks.map((card) => card.block.id) ?? [];
+    expect(spawned ? mondayBlockIds.includes(spawned.id) : false).toBe(true);
+  });
+
+  it('resize updates queue interval for placed candidate blocks', () => {
+    const board = createBoardWeek(blocks);
+    const placed = placeBlockOnLane(board, 'b3', 'lane-monday', '08:30');
+    const resized = resizeBlockFromBottom(placed, 'b3', 1);
+
+    expect(resized.queue.items.find((item) => item.blockId === 'b3')).toMatchObject({
+      interval: '08:30 - 10:30',
+      endTime: '10:30'
     });
   });
 });

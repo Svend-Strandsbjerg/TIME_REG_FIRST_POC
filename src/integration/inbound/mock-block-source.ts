@@ -45,6 +45,28 @@ const createMockBlocks = (): TimeBlock[] => {
       };
     }
 
+    if (index === 1) {
+      return {
+        ...block,
+        state: 'template',
+        metadata: {
+          ...block.metadata,
+          pspElement: 'PSP-STANDARD-WORKSHOP'
+        }
+      };
+    }
+
+    if (index === 2) {
+      return {
+        ...block,
+        state: 'imported',
+        metadata: {
+          ...block.metadata,
+          importedFrom: 'outlook-calendar'
+        }
+      };
+    }
+
     return block;
   });
 };

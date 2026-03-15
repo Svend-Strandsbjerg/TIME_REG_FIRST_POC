@@ -4,8 +4,11 @@ import type { BlockState, BoardState, DayLane, QueueItem, TimeBlock, TimeEntryDr
 export type TimeBlockCardView = {
   block: TimeBlock;
   state: BlockState;
+  isTemplate: boolean;
+  templateSourceBlockId?: string;
   startTime?: TimeOfDay;
   endTime?: TimeOfDay;
+  interval?: string;
   topOffsetMinutes?: number;
   heightMinutes?: number;
 };
@@ -38,7 +41,14 @@ export const buildPlanningView = (state: BoardState): WeeklyBoardView => {
   const placedBlockIds = new Set(state.placements.filter((placement) => placement.laneId !== 'unplanned').map((placement) => placement.blockId));
   const blockLookup = new Map(state.blocks.map((block) => [block.id, block]));
 
-  const availableBlocks = state.blocks.filter((block) => !placedBlockIds.has(block.id)).map((block) => ({ block, state: block.state }));
+  const availableBlocks = state.blocks
+    .filter((block) => block.state === 'template' || !placedBlockIds.has(block.id))
+    .map((block) => ({
+      block,
+      state: block.state,
+      isTemplate: block.state === 'template',
+      templateSourceBlockId: typeof block.metadata?.templateSourceBlockId === 'string' ? block.metadata.templateSourceBlockId : undefined
+    }));
 
   const lanes = [...state.lanes]
     .sort((a, b) => a.order - b.order)
@@ -55,11 +65,16 @@ export const buildPlanningView = (state: BoardState): WeeklyBoardView => {
           continue;
         }
 
+        const endTime = deriveEndTime(placement.startTime, block.extentMinutes);
+
         placedBlocks.push({
           block,
           state: block.state,
+          isTemplate: block.state === 'template',
+          templateSourceBlockId: typeof block.metadata?.templateSourceBlockId === 'string' ? block.metadata.templateSourceBlockId : undefined,
           startTime: placement.startTime,
-          endTime: deriveEndTime(placement.startTime, block.extentMinutes),
+          endTime,
+          interval: `${placement.startTime} - ${endTime}`,
           topOffsetMinutes: toMinutesOfDay(placement.startTime) - planningStartMinutes,
           heightMinutes: block.extentMinutes
         });
