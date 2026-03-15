@@ -6,7 +6,9 @@ import type {
   PlacementSlot,
   PlacedBlock,
   Queue,
+  QueueId,
   QueueItem,
+  QueueItemId,
   QueueOperation,
   TimeBlock,
   TimeBlockId,
@@ -40,8 +42,28 @@ const buildSlot = (laneLookup: Map<DayLaneId, DayLane>, laneId: DayLaneId, start
   };
 };
 
+
+const buildDeterministicId = (...parts: string[]): string => {
+  const normalized = parts.join('|');
+  let hash = 2166136261;
+
+  for (let index = 0; index < normalized.length; index += 1) {
+    hash ^= normalized.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return Math.abs(hash >>> 0).toString(16).padStart(8, '0');
+};
+
+export const createQueueId = (scope = 'weekly-planning'): QueueId => `queue-${buildDeterministicId(scope)}`;
+
+const createQueueItemId = (queueId: QueueId, blockId: TimeBlockId, operation: QueueOperation, dayKey: DayKey, startTime: TimeOfDay): QueueItemId =>
+  `queue-item-${buildDeterministicId(queueId, blockId, operation, dayKey, startTime)}`;
+
+export const formatInterval = (startTime: TimeOfDay, endTime: TimeOfDay): string => `${startTime} - ${endTime}`;
+
 const buildQueueItem = (
-  queueId: string,
+  queueId: QueueId,
   block: TimeBlock,
   slot: PlacementSlot,
   operation: QueueOperation,
@@ -51,14 +73,14 @@ const buildQueueItem = (
   const endTime = deriveEndTime(startTime, block.extentMinutes);
 
   return {
-  id: `queue-item-${block.id}`,
+  id: createQueueItemId(queueId, block.id, operation, slot.dayKey, startTime),
   queueId,
   blockId: block.id,
   title: block.title,
   dayKey: slot.dayKey,
   startTime,
   endTime,
-  interval: `${startTime} - ${endTime}`,
+  interval: formatInterval(startTime, endTime),
   operation,
   reason
 };

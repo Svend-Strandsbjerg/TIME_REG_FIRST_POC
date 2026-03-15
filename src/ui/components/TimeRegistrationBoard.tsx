@@ -9,6 +9,7 @@ type Props = {
   onReturnBlock: (blockId: string) => void;
   onResizeTop: (blockId: string, slotDelta: number) => void;
   onResizeBottom: (blockId: string, slotDelta: number) => void;
+  onAutoPlaceImported: (blockId: string) => void;
 };
 
 export const TimeRegistrationBoard = ({
@@ -16,10 +17,16 @@ export const TimeRegistrationBoard = ({
   onPlaceBlock,
   onReturnBlock,
   onResizeBottom,
-  onResizeTop
+  onResizeTop,
+  onAutoPlaceImported
 }: Props) => (
   <main className="layout">
-    <AvailableBlocksPanel blocks={board.availableBlocks} onReturnBlock={onReturnBlock} />
+    <AvailableBlocksPanel
+      importedCandidates={board.importedCandidates}
+      templateCandidates={board.templateCandidates}
+      onAutoPlaceImported={onAutoPlaceImported}
+      onReturnBlock={onReturnBlock}
+    />
     <section className="board-section">
       <header className="summary">
         <h1>Weekly Timesheet Planning</h1>

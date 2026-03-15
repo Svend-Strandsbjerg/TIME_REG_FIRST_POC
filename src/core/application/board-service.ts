@@ -1,13 +1,14 @@
 import {
   appendPlacement,
   createCommittedPlacement,
+  createQueueId,
   getPlacementForBlock,
   removePlacement,
   resizePlacedBlock,
   withQueueProjectionApplied
 } from '../domain/board-rules';
 import { WEEK_LANES } from '../domain/day-lane';
-import type { BoardState, DayLaneId, PlacedBlock, TimeBlock, TimeBlockId, TimeOfDay } from '../domain/board-types';
+import type { BoardState, DayKey, DayLaneId, PlacedBlock, TimeBlock, TimeBlockId, TimeOfDay } from '../domain/board-types';
 import { clampToPlanningWindow } from '../domain/time-slot';
 
 type CommittedMetadata = {
@@ -37,6 +38,47 @@ const parseCommittedMetadata = (block: TimeBlock): CommittedMetadata | undefined
   return { laneId, startTime: clampToPlanningWindow(startTime), extentMinutes };
 };
 
+
+
+type ImportedPlacementMetadata = {
+  importedDayKey: DayKey;
+  importedStartTime: TimeOfDay;
+  importedEndTime?: TimeOfDay;
+};
+
+const parseImportedPlacementMetadata = (block: TimeBlock): ImportedPlacementMetadata | undefined => {
+  const importedDayKey = block.metadata?.importedDayKey;
+  const importedStartTime = block.metadata?.importedStartTime;
+  const importedEndTime = block.metadata?.importedEndTime;
+
+  if (typeof importedDayKey !== 'string' || typeof importedStartTime !== 'string') {
+    return undefined;
+  }
+
+  if (importedEndTime !== undefined && typeof importedEndTime !== 'string') {
+    return undefined;
+  }
+
+  return {
+    importedDayKey: importedDayKey as DayKey,
+    importedStartTime: clampToPlanningWindow(importedStartTime),
+    importedEndTime
+  };
+};
+
+const laneIdByDayKey = new Map(WEEK_LANES.map((lane) => [lane.dayKey, lane.id]));
+
+const markImportedAsPlaced = (state: BoardState, blockId: TimeBlockId): BoardState => ({
+  ...state,
+  blocks: state.blocks.map((block) =>
+    block.id === blockId && block.state === 'imported'
+      ? {
+          ...block,
+          state: 'uncommitted'
+        }
+      : block
+  )
+});
 
 const createSpawnedBlockFromTemplate = (state: BoardState, templateBlock: TimeBlock): TimeBlock => {
   const siblingCount = state.blocks.filter((candidate) => candidate.metadata?.templateSourceBlockId === templateBlock.id).length;
@@ -86,7 +128,7 @@ export const createBoardWeek = (blocks: TimeBlock[]): BoardState =>
     lanes: WEEK_LANES,
     placements: createInitialPlacements(blocks),
     queue: {
-      id: 'planning-queue',
+      id: createQueueId(),
       status: 'paused',
       items: []
     }
@@ -99,7 +141,8 @@ export const placeBlockOnLane = (state: BoardState, blockId: TimeBlockId, laneId
   }
 
   if (block.state !== 'template') {
-    return appendPlacement(state, blockId, laneId, startTime);
+    const nextState = markImportedAsPlaced(state, blockId);
+    return appendPlacement(nextState, blockId, laneId, startTime);
   }
 
   const spawnedBlock = createSpawnedBlockFromTemplate(state, block);
@@ -133,3 +176,23 @@ export const resizeBlockFromBottom = (state: BoardState, blockId: TimeBlockId, s
 
 export const resizeBlockFromTop = (state: BoardState, blockId: TimeBlockId, slotDelta: number): BoardState =>
   resizePlacedBlock(state, blockId, { edge: 'top', slotDelta });
+
+
+export const autoPlaceImportedBlock = (state: BoardState, blockId: TimeBlockId): BoardState => {
+  const block = state.blocks.find((candidate) => candidate.id === blockId);
+  if (!block || block.state !== 'imported') {
+    return state;
+  }
+
+  const importedPlacement = parseImportedPlacementMetadata(block);
+  if (!importedPlacement) {
+    return state;
+  }
+
+  const laneId = laneIdByDayKey.get(importedPlacement.importedDayKey);
+  if (!laneId) {
+    return state;
+  }
+
+  return placeBlockOnLane(state, blockId, laneId, importedPlacement.importedStartTime);
+};

@@ -3,11 +3,13 @@ import { readBlockPayload } from '../adapters/dnd-adapter';
 import { TimeBlockCard } from './TimeBlockCard';
 
 type Props = {
-  blocks: TimeBlockCardView[];
+  importedCandidates: TimeBlockCardView[];
+  templateCandidates: TimeBlockCardView[];
   onReturnBlock: (blockId: string) => void;
+  onAutoPlaceImported: (blockId: string) => void;
 };
 
-export const AvailableBlocksPanel = ({ blocks, onReturnBlock }: Props) => (
+export const AvailableBlocksPanel = ({ importedCandidates, templateCandidates, onAutoPlaceImported, onReturnBlock }: Props) => (
   <section
     className="panel"
     onDragOver={(event) => event.preventDefault()}
@@ -19,13 +21,29 @@ export const AvailableBlocksPanel = ({ blocks, onReturnBlock }: Props) => (
       }
     }}
   >
-    <h2>Unplanned candidates</h2>
+    <h2>Candidate blocks</h2>
     <p className="drop-hint">Drop a planned block here to return it to the pool.</p>
-    {blocks.length === 0 ? <p>All blocks are planned.</p> : null}
-    <div className="panel-blocks">
-      {blocks.map((card) => (
-        <TimeBlockCard key={card.block.id} card={card} />
-      ))}
+
+    <div className="candidate-section">
+      <h3>Imported candidates</h3>
+      <p className="drop-hint">Blue imported blocks support drag/drop and double-click auto-placement.</p>
+      {importedCandidates.length === 0 ? <p>No imported candidates.</p> : null}
+      <div className="panel-blocks">
+        {importedCandidates.map((card) => (
+          <TimeBlockCard key={card.block.id} card={card} onDoubleClick={onAutoPlaceImported} visualContext="candidate" />
+        ))}
+      </div>
+    </div>
+
+    <div className="candidate-section">
+      <h3>PSP templates</h3>
+      <p className="drop-hint">Purple PSP templates are reusable and remain in the palette.</p>
+      {templateCandidates.length === 0 ? <p>No template candidates.</p> : null}
+      <div className="panel-blocks">
+        {templateCandidates.map((card) => (
+          <TimeBlockCard key={card.block.id} card={card} visualContext="candidate" />
+        ))}
+      </div>
     </div>
   </section>
 );

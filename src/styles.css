@@ -81,8 +81,6 @@ body {
 
 .lane-block-placement {
   position: absolute;
-  left: 36px;
-  right: 4px;
 }
 
 .time-block-card {
@@ -115,8 +113,8 @@ body {
 }
 
 .time-block-card--committed {
-  border-color: #f59e0b;
-  background: #ffedd5;
+  border-color: #eab308;
+  background: #fef9c3;
 }
 
 .resize-handle {
@@ -185,4 +183,10 @@ body {
   padding: 0.5rem;
   display: grid;
   gap: 0.2rem;
+}
+
+.candidate-section {
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
 }

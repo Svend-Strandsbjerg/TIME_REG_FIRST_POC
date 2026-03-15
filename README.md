@@ -8,7 +8,7 @@ This POC now provides a **time-aware daily swimlane planner** aligned with:
 ## Scope in this phase
 
 - Three-panel layout:
-  - left: unplanned blocks
+  - left: split candidate palette (Imported candidates + PSP templates)
   - center: weekly planner with day columns modeled as a time axis
   - right: paused queue/log monitor
 - Daily planning window: **06:00-18:00**
@@ -35,7 +35,9 @@ Duration remains on the block via `extentMinutes`. End time is derived from `sta
 ## Queue behavior (time-aware)
 
 - Template block is a reusable PSP source card (purple); dragging it spawns a new actionable block while the template remains in candidates
-- Imported block is an external-source candidate signal (blue) and behaves like normal placeable candidate flow
+- Imported block is an external-source candidate signal (blue) with imported baseline metadata (`importedDayKey`, `importedStartTime`, optional `importedEndTime`)
+- Imported candidates support double-click auto-placement to their imported day/time
+- Imported candidates are consumed on placement (moved into planned swimlanes)
 - Uncommitted/imported block placed => queue `create` with day + derived interval (`start - end`)
 - Uncommitted block removed => queue item removed
 - Committed block removed from baseline => queue `delete`
@@ -45,9 +47,11 @@ Duration remains on the block via `extentMinutes`. End time is derived from `sta
 
 Committed baseline now tracks day + start time (and optional extent baseline metadata).
 
-## Collision handling in this POC
+## Parallel/overlap handling in this POC
 
-Current behavior allows free placement on any deterministic slot and does **not** implement sophisticated overlap prevention yet. This is intentionally deferred as a future enhancement.
+- Multiple blocks are allowed at the same time in the same day lane.
+- Overlapping intervals are grouped deterministically and rendered side-by-side (split width by concurrent count).
+- This is a lightweight calendar-style packing strategy intended for predictable visual clarity.
 
 ## Install and run
 
@@ -69,3 +73,15 @@ npm run build
 - `src/core/application`: command operations + read projections
 - `src/integration`: inbound adapter boundary + queue handoff placeholder
 - `src/ui` + `src/app`: React adapter (DnD + edge-drag resize intent + rendering)
+
+
+## Color semantics
+
+- Candidate palette colors:
+  - imported candidate: blue
+  - PSP template: purple
+- Swimlane (placed) colors:
+  - uncommitted placed block: red
+  - committed placed block: yellow
+
+All block cards now display interval text (`HH:mm - HH:mm`) instead of duration labels.

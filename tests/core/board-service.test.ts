@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildPlanningView } from '../../src/core/application/board-queries';
 import {
+  autoPlaceImportedBlock,
   createBoardWeek,
   placeBlockOnLane,
   resizeBlockFromBottom,
@@ -26,7 +27,14 @@ const blocks: TimeBlock[] = [
     }
   },
   { id: 'b2', title: 'Internal workshop', extentMinutes: 120, source: 'mock-api', state: 'uncommitted' },
-  { id: 'b3', title: 'Outlook follow-up', extentMinutes: 90, source: 'external-api', state: 'imported' },
+  {
+    id: 'b3',
+    title: 'Outlook follow-up',
+    extentMinutes: 90,
+    source: 'external-api',
+    state: 'imported',
+    metadata: { importedDayKey: 'wednesday', importedStartTime: '08:30', importedEndTime: '10:00' }
+  },
   {
     id: 'b4',
     title: 'Standard PSP planning',
@@ -41,7 +49,7 @@ describe('board-service queue simulation', () => {
   it('creates a single paused queue', () => {
     const board = createBoardWeek(blocks);
 
-    expect(board.queue.id).toBe('planning-queue');
+    expect(board.queue.id.startsWith('queue-')).toBe(true);
     expect(board.queue.status).toBe('paused');
   });
 
@@ -51,7 +59,7 @@ describe('board-service queue simulation', () => {
 
     expect(placed.queue.items).toHaveLength(1);
     expect(placed.queue.items[0]).toMatchObject({
-      queueId: 'planning-queue',
+      queueId: placed.queue.id,
       blockId: 'b2',
       dayKey: 'tuesday',
       startTime: '10:00',
@@ -205,7 +213,7 @@ describe('board-service queue simulation', () => {
     const placed = placeBlockOnLane(board, 'b4', 'lane-monday', '08:30');
     const view = buildPlanningView(placed);
 
-    expect(view.availableBlocks.some((card) => card.block.id === 'b4' && card.isTemplate)).toBe(true);
+    expect(view.templateCandidates.some((card) => card.block.id === 'b4' && card.isTemplate)).toBe(true);
 
     const spawned = placed.blocks.find((block) => block.metadata?.templateSourceBlockId === 'b4');
     expect(spawned).toBeDefined();
@@ -215,8 +223,30 @@ describe('board-service queue simulation', () => {
     expect(spawned ? mondayBlockIds.includes(spawned.id) : false).toBe(true);
   });
 
-  it('resize updates queue interval for placed candidate blocks', () => {
+
+
+  it('queue item IDs are unique identifiers and not labels', () => {
     const board = createBoardWeek(blocks);
+    const withOne = placeBlockOnLane(board, 'b2', 'lane-tuesday', '10:00');
+    const withTwo = placeBlockOnLane(withOne, 'b3', 'lane-wednesday', '09:00');
+
+    expect(withTwo.queue.items[0]?.id).toMatch(/^queue-item-/);
+    expect(withTwo.queue.items[1]?.id).toMatch(/^queue-item-/);
+    expect(withTwo.queue.items[0]?.id).not.toBe(withTwo.queue.items[1]?.id);
+  });
+
+  it('double-click auto-place uses imported day/time metadata', () => {
+    const board = createBoardWeek(blocks);
+    const placed = autoPlaceImportedBlock(board, 'b3');
+    const lane = buildPlanningView(placed).lanes.find((candidate) => candidate.lane.dayKey === 'wednesday');
+    const importedCard = lane?.placedBlocks.find((candidate) => candidate.block.id === 'b3');
+
+    expect(importedCard?.startTime).toBe('08:30');
+    expect(importedCard?.interval).toBe('08:30 - 10:00');
+    expect(importedCard?.state).toBe('uncommitted');
+  });
+
+  it('resize updates queue interval for placed candidate blocks', () => {    const board = createBoardWeek(blocks);
     const placed = placeBlockOnLane(board, 'b3', 'lane-monday', '08:30');
     const resized = resizeBlockFromBottom(placed, 'b3', 1);
 
