@@ -32,12 +32,23 @@ Example:
 
 ## Resize semantics
 
-- Downward extend:
+- Bottom-edge drag (extend/retract):
   - changes `extentMinutes`
-  - keeps `startTime`
-- Upward extend:
-  - changes `startTime` earlier
-  - increases `extentMinutes`
+  - keeps `startTime` anchored
+  - `endTime` is recalculated from `startTime + extentMinutes`
+- Top-edge drag (extend/retract):
+  - changes `startTime`
+  - changes `extentMinutes`
+  - bottom/end is anchored
+
+Resize operations are snapped to `30-minute` slot increments.
+
+## Resize constraints
+
+- minimum extent: `30 minutes`
+- start cannot move earlier than `06:00`
+- end cannot move later than `18:00`
+- out-of-range drag intent is clamped deterministically to these boundaries
 
 ## Committed baseline
 

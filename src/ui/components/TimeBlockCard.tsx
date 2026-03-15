@@ -1,37 +1,94 @@
+import { useRef } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import type { TimeBlockCardView } from '../../core/application/board-queries';
 import { extentToCalendarHeight } from '../../core/domain/time-block';
+import { SLOT_MINUTES } from '../../core/domain/time-slot';
 import { writeBlockPayload } from '../adapters/dnd-adapter';
 
 type Props = {
   card: TimeBlockCardView;
   fromLaneId?: string;
-  onExtendUpward?: (blockId: string) => void;
-  onExtendDownward?: (blockId: string) => void;
+  onResizeTop?: (blockId: string, slotDelta: number) => void;
+  onResizeBottom?: (blockId: string, slotDelta: number) => void;
 };
 
-export const TimeBlockCard = ({ card, fromLaneId, onExtendDownward, onExtendUpward }: Props) => (
-  <article
-    draggable
-    onDragStart={(event) => writeBlockPayload(event, { blockId: card.block.id, fromLaneId })}
-    className={`time-block-card time-block-card--${card.state}`}
-    style={card.heightMinutes ? { height: `${extentToCalendarHeight(card.heightMinutes)}px` } : undefined}
-  >
-    <strong>{card.block.title}</strong>
-    <span>{card.block.extentMinutes} min</span>
-    {card.startTime && card.endTime ? (
-      <small>
-        {card.startTime}–{card.endTime}
-      </small>
-    ) : null}
-    {onExtendDownward || onExtendUpward ? (
-      <div className="resize-actions">
-        <button type="button" onClick={() => onExtendUpward?.(card.block.id)}>
-          ↑ +30m
-        </button>
-        <button type="button" onClick={() => onExtendDownward?.(card.block.id)}>
-          ↓ +30m
-        </button>
-      </div>
-    ) : null}
-  </article>
-);
+const SLOT_HEIGHT_PX = extentToCalendarHeight(SLOT_MINUTES);
+
+export const TimeBlockCard = ({ card, fromLaneId, onResizeBottom, onResizeTop }: Props) => {
+  const isResizingRef = useRef(false);
+
+  const beginResize = (event: ReactPointerEvent<HTMLDivElement>, edge: 'top' | 'bottom') => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const pointerId = event.pointerId;
+    const originY = event.clientY;
+    const handle = event.currentTarget;
+    let latestDelta = 0;
+
+    isResizingRef.current = true;
+    handle.setPointerCapture(pointerId);
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      latestDelta = Math.round((moveEvent.clientY - originY) / SLOT_HEIGHT_PX);
+    };
+
+    const onPointerUp = () => {
+      if (latestDelta !== 0) {
+        if (edge === 'top') {
+          onResizeTop?.(card.block.id, latestDelta);
+        } else {
+          onResizeBottom?.(card.block.id, latestDelta);
+        }
+      }
+
+      isResizingRef.current = false;
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
+    };
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
+  };
+
+  return (
+    <article
+      draggable
+      onDragStart={(event) => {
+        if (isResizingRef.current) {
+          event.preventDefault();
+          return;
+        }
+        writeBlockPayload(event, { blockId: card.block.id, fromLaneId });
+      }}
+      className={`time-block-card time-block-card--${card.state}`}
+      style={card.heightMinutes ? { height: `${extentToCalendarHeight(card.heightMinutes)}px` } : undefined}
+    >
+      {(onResizeTop || onResizeBottom) && (
+        <div
+          className="resize-handle resize-handle--top"
+          onPointerDown={(event) => beginResize(event, 'top')}
+          aria-label="Resize block from top"
+          role="separator"
+        />
+      )}
+      <strong>{card.block.title}</strong>
+      <span>{card.block.extentMinutes} min</span>
+      {card.startTime && card.endTime ? (
+        <small>
+          {card.startTime}–{card.endTime}
+        </small>
+      ) : null}
+      {(onResizeTop || onResizeBottom) && (
+        <div
+          className="resize-handle resize-handle--bottom"
+          onPointerDown={(event) => beginResize(event, 'bottom')}
+          aria-label="Resize block from bottom"
+          role="separator"
+        />
+      )}
+    </article>
+  );
+};

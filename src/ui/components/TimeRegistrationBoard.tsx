@@ -7,16 +7,16 @@ type Props = {
   board: WeeklyBoardView;
   onPlaceBlock: (blockId: string, laneId: string, startTime: string) => void;
   onReturnBlock: (blockId: string) => void;
-  onExtendUpward: (blockId: string) => void;
-  onExtendDownward: (blockId: string) => void;
+  onResizeTop: (blockId: string, slotDelta: number) => void;
+  onResizeBottom: (blockId: string, slotDelta: number) => void;
 };
 
 export const TimeRegistrationBoard = ({
   board,
   onPlaceBlock,
   onReturnBlock,
-  onExtendDownward,
-  onExtendUpward
+  onResizeBottom,
+  onResizeTop
 }: Props) => (
   <main className="layout">
     <AvailableBlocksPanel blocks={board.availableBlocks} onReturnBlock={onReturnBlock} />
@@ -30,8 +30,8 @@ export const TimeRegistrationBoard = ({
       <WeekSwimlanes
         lanes={board.lanes}
         onDropBlock={onPlaceBlock}
-        onExtendDownward={onExtendDownward}
-        onExtendUpward={onExtendUpward}
+        onResizeBottom={onResizeBottom}
+        onResizeTop={onResizeTop}
       />
     </section>
     <QueueLogPanel queue={board.queue} />

@@ -16,8 +16,11 @@ This POC now provides a **time-aware daily swimlane planner** aligned with:
 - Placement model: **day + start time**
 - Extent model: **block extentMinutes drives rendered height and derived end time**
 - Resize support:
-  - downward extend => extent changes
-  - upward extend => start time and extent change
+  - drag block body => move placement
+  - drag bottom edge => extend/retract by changing extent while anchoring start time
+  - drag top edge => extend/retract by changing start time + extent while anchoring end time
+  - snapping uses 30-minute slot increments, minimum extent is 30 minutes
+  - resize is clamped to the 06:00-18:00 planning window
 - Daily totals shown per day (`sum(extentMinutes)`)
 
 ## Placement model
@@ -62,4 +65,4 @@ npm run build
 - `src/core/domain`: framework-neutral entities + deterministic time rules
 - `src/core/application`: command operations + read projections
 - `src/integration`: inbound adapter boundary + queue handoff placeholder
-- `src/ui` + `src/app`: React adapter (DnD + resize intent + rendering)
+- `src/ui` + `src/app`: React adapter (DnD + edge-drag resize intent + rendering)

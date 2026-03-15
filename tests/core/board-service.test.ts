@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { buildPlanningView } from '../../src/core/application/board-queries';
 import {
   createBoardWeek,
-  extendBlockDownward,
-  extendBlockUpward,
   placeBlockOnLane,
+  resizeBlockFromBottom,
+  resizeBlockFromTop,
   returnBlockToPool
 } from '../../src/core/application/board-service';
 import { deriveEndTime } from '../../src/core/domain/time-slot';
@@ -78,9 +78,9 @@ describe('board-service queue simulation', () => {
     expect(deriveEndTime('08:30', 90)).toBe('10:00');
   });
 
-  it('extending downward only changes extent', () => {
+  it('bottom-edge extend only changes extent and end time', () => {
     const board = createBoardWeek(blocks);
-    const resized = extendBlockDownward(board, 'b1', 30);
+    const resized = resizeBlockFromBottom(board, 'b1', 1);
     const view = buildPlanningView(resized);
     const mondayBlock = view.lanes.find((lane) => lane.lane.id === 'lane-monday')?.placedBlocks[0];
 
@@ -89,9 +89,21 @@ describe('board-service queue simulation', () => {
     expect(mondayBlock?.endTime).toBe('10:00');
   });
 
-  it('extending upward changes start time and extent', () => {
+  it('bottom-edge retract reduces extent and keeps start', () => {
     const board = createBoardWeek(blocks);
-    const resized = extendBlockUpward(board, 'b1', 30);
+    const extended = resizeBlockFromBottom(board, 'b1', 2);
+    const retracted = resizeBlockFromBottom(extended, 'b1', -1);
+    const view = buildPlanningView(retracted);
+    const mondayBlock = view.lanes.find((lane) => lane.lane.id === 'lane-monday')?.placedBlocks[0];
+
+    expect(mondayBlock?.startTime).toBe('08:30');
+    expect(mondayBlock?.block.extentMinutes).toBe(90);
+    expect(mondayBlock?.endTime).toBe('10:00');
+  });
+
+  it('top-edge extend moves start upward and increases extent', () => {
+    const board = createBoardWeek(blocks);
+    const resized = resizeBlockFromTop(board, 'b1', -1);
     const view = buildPlanningView(resized);
     const mondayBlock = view.lanes.find((lane) => lane.lane.id === 'lane-monday')?.placedBlocks[0];
 
@@ -100,12 +112,63 @@ describe('board-service queue simulation', () => {
     expect(mondayBlock?.endTime).toBe('09:30');
   });
 
-  it('calculates daily total hours from block extent', () => {
+  it('top-edge retract moves start downward and reduces extent', () => {
     const board = createBoardWeek(blocks);
-    const withWorkshop = placeBlockOnLane(board, 'b2', 'lane-monday', '10:00');
-    const view = buildPlanningView(withWorkshop);
+    const extended = resizeBlockFromTop(board, 'b1', -1);
+    const retracted = resizeBlockFromTop(extended, 'b1', 1);
+    const view = buildPlanningView(retracted);
+    const mondayBlock = view.lanes.find((lane) => lane.lane.id === 'lane-monday')?.placedBlocks[0];
 
-    const monday = view.lanes.find((lane) => lane.lane.id === 'lane-monday');
-    expect(monday?.totalHours).toBe(3);
+    expect(mondayBlock?.startTime).toBe('08:30');
+    expect(mondayBlock?.block.extentMinutes).toBe(60);
+    expect(mondayBlock?.endTime).toBe('09:30');
+  });
+
+  it('enforces minimum extent of 30 minutes while retracting', () => {
+    const board = createBoardWeek(blocks);
+    const retracted = resizeBlockFromBottom(board, 'b1', -3);
+    const view = buildPlanningView(retracted);
+    const mondayBlock = view.lanes.find((lane) => lane.lane.id === 'lane-monday')?.placedBlocks[0];
+
+    expect(mondayBlock?.block.extentMinutes).toBe(30);
+    expect(mondayBlock?.startTime).toBe('08:30');
+    expect(mondayBlock?.endTime).toBe('09:00');
+  });
+
+  it('respects 06:00 planning boundary for top-edge extension', () => {
+    const board = createBoardWeek(blocks);
+    const moved = placeBlockOnLane(board, 'b1', 'lane-monday', '06:00');
+    const resized = resizeBlockFromTop(moved, 'b1', -2);
+    const view = buildPlanningView(resized);
+    const mondayBlock = view.lanes.find((lane) => lane.lane.id === 'lane-monday')?.placedBlocks.find((block) => block.block.id === 'b1');
+
+    expect(mondayBlock?.startTime).toBe('06:00');
+    expect(mondayBlock?.block.extentMinutes).toBe(60);
+    expect(mondayBlock?.endTime).toBe('07:00');
+  });
+
+  it('respects 18:00 planning boundary for bottom-edge extension', () => {
+    const board = createBoardWeek(blocks);
+    const moved = placeBlockOnLane(board, 'b1', 'lane-monday', '17:00');
+    const resized = resizeBlockFromBottom(moved, 'b1', 2);
+    const view = buildPlanningView(resized);
+    const mondayBlock = view.lanes.find((lane) => lane.lane.id === 'lane-monday')?.placedBlocks.find((block) => block.block.id === 'b1');
+
+    expect(mondayBlock?.startTime).toBe('17:00');
+    expect(mondayBlock?.block.extentMinutes).toBe(60);
+    expect(mondayBlock?.endTime).toBe('18:00');
+  });
+
+  it('updates totals and queue projection when committed extent changes at baseline slot', () => {
+    const board = createBoardWeek(blocks);
+    const resized = resizeBlockFromBottom(board, 'b1', 1);
+    const monday = buildPlanningView(resized).lanes.find((lane) => lane.lane.id === 'lane-monday');
+
+    expect(monday?.totalHours).toBe(1.5);
+    expect(resized.queue.items.find((item) => item.blockId === 'b1')).toMatchObject({
+      operation: 'update',
+      dayKey: 'monday',
+      timeSlot: '08:30'
+    });
   });
 });

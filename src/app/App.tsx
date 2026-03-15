@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { buildPlanningView, convertPlacedBlockToTimeEntryDraft } from '../core/application/board-queries';
 import {
   createBoardWeek,
-  extendBlockDownward,
-  extendBlockUpward,
   placeBlockOnLane,
+  resizeBlockFromBottom,
+  resizeBlockFromTop,
   returnBlockToPool
 } from '../core/application/board-service';
 import type { BoardState } from '../core/domain/board-types';
@@ -38,8 +38,12 @@ export const App = () => {
           setState((current) => (current ? placeBlockOnLane(current, blockId, laneId, startTime) : current))
         }
         onReturnBlock={(blockId) => setState((current) => (current ? returnBlockToPool(current, blockId) : current))}
-        onExtendUpward={(blockId) => setState((current) => (current ? extendBlockUpward(current, blockId, 30) : current))}
-        onExtendDownward={(blockId) => setState((current) => (current ? extendBlockDownward(current, blockId, 30) : current))}
+        onResizeTop={(blockId, slotDelta) =>
+          setState((current) => (current ? resizeBlockFromTop(current, blockId, slotDelta) : current))
+        }
+        onResizeBottom={(blockId, slotDelta) =>
+          setState((current) => (current ? resizeBlockFromBottom(current, blockId, slotDelta) : current))
+        }
       />
       <section className="draft-preview">
         <h2>Future integration projections</h2>
