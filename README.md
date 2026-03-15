@@ -55,6 +55,25 @@ Committed baseline now tracks day + start time (and optional extent baseline met
 - Overlapping intervals are grouped deterministically and rendered side-by-side (split width by concurrent count).
 - This is a lightweight calendar-style packing strategy intended for predictable visual clarity.
 
+
+## Foundation runtime ownership in this repo
+
+The POC now calls foundation runtime APIs directly:
+
+- `BLOCK_ENGINE_FOUNDATION` (`block_engine_foundation`):
+  - `normalizeBlockExtent`
+  - `instantiateBlockFromSource`
+  - `resizePlacement`
+  - `createPlacementSnapshot`
+  - `changeBlockState`
+  - `changeBlockExtent`
+- `ASYNC_INTEGRATION_FOUNDATION` (`async_integration_foundation`):
+  - `createQueueId`
+  - `createQueueItemId`
+  - `buildQueueItem`
+
+Application ownership remains in the POC for scheduling semantics, candidate semantics, queue intent decisioning, overlap rendering, and UI interactions.
+
 ## Install and run
 
 ```bash

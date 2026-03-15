@@ -84,3 +84,10 @@ The planner allows concurrent placements. Core projections annotate each placed 
 - Imported source candidates are recoverable: removing from swimlane re-exposes the imported candidate.
 - Committed blocks removed from swimlanes remain visible as red changed candidates (unplanned lane projection).
 - Template candidates are perpetual sources and spawn real uncommitted planning entries.
+
+## Foundation ownership boundaries (direct runtime integration)
+
+- `src/core/application/board-service.ts` directly imports `BLOCK_ENGINE_FOUNDATION` runtime APIs for block normalization, template-source instantiation, block state transitions, and placement snapshot creation.
+- `src/core/domain/board-rules.ts` directly imports `BLOCK_ENGINE_FOUNDATION` resize/extent APIs and `ASYNC_INTEGRATION_FOUNDATION` queue identity/item-construction APIs.
+- The POC keeps planning intent (create/update/delete decisioning), day/time placement semantics, candidate semantics, overlap rendering, and UI behavior.
+- Foundations own canonical block/queue mechanics and identities used by runtime state projection.

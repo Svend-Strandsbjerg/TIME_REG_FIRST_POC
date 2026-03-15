@@ -17,7 +17,8 @@
   "dependencies": {
     "block_engine_foundation": "latest",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "async_integration_foundation": "latest"
   },
   "devDependencies": {
     "@types/react": "^18.3.12",

@@ -53,3 +53,11 @@ Extent changes are not yet emitted as distinct queue semantics in this POC, but 
 - A committed entry moved away from its baseline (including removal to unplanned candidate area) remains a queue change candidate until restored exactly to baseline.
 - Restoring the exact baseline placement clears the queued change projection deterministically.
 - Description is now part of block payload metadata. Current queue projection remains placement-focused, but payload enrichment keeps future outbound inclusion straightforward.
+
+
+## Direct foundation queue ownership
+
+- Queue IDs now come from `createQueueId` in `ASYNC_INTEGRATION_FOUNDATION`.
+- Queue item IDs now come from `createQueueItemId` in `ASYNC_INTEGRATION_FOUNDATION`.
+- Queue item payload construction now comes from `buildQueueItem` in `ASYNC_INTEGRATION_FOUNDATION`.
+- Planning intent (`create`/`update`/`delete`) still originates in the POC from board/baseline semantics.
