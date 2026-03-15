@@ -1,6 +1,11 @@
 import {
+  changeBlockState,
+  createPlacementSnapshot,
+  instantiateBlockFromSource,
+  normalizeBlockExtent
+} from 'block_engine_foundation';
+import {
   appendPlacement,
-  createCommittedPlacement,
   createQueueId,
   getPlacementForBlock,
   removePlacement,
@@ -66,28 +71,22 @@ const parseImportedPlacementMetadata = (block: TimeBlock): ImportedPlacementMeta
 
 const laneIdByDayKey = new Map(WEEK_LANES.map((lane) => [lane.dayKey, lane.id]));
 
-const normalizeTemplateExtent = (block: TimeBlock): TimeBlock =>
-  block.state === 'template'
-    ? {
-        ...block,
-        extentMinutes: 30
-      }
-    : block;
-
 const createSpawnedBlockFromTemplate = (state: BoardState, templateBlock: TimeBlock): TimeBlock => {
   const siblingCount = state.blocks.filter((candidate) => candidate.metadata?.templateSourceBlockId === templateBlock.id).length;
+  const spawnedId = `spawn-${templateBlock.id}-${siblingCount + 1}`;
 
-  return {
-    ...templateBlock,
-    id: `spawn-${templateBlock.id}-${siblingCount + 1}`,
-    extentMinutes: 30,
+  const instantiated = instantiateBlockFromSource(templateBlock, {
+    id: spawnedId,
     state: 'uncommitted',
+    extentMinutes: 30,
     metadata: {
       ...templateBlock.metadata,
       templateSourceBlockId: templateBlock.id,
       templatePspElement: templateBlock.metadata?.pspElement ?? templateBlock.title
     }
-  };
+  }) as TimeBlock;
+
+  return changeBlockState(instantiated, 'uncommitted') as TimeBlock;
 };
 
 const createInitialPlacements = (blocks: TimeBlock[]): PlacedBlock[] => {
@@ -100,17 +99,31 @@ const createInitialPlacements = (blocks: TimeBlock[]): PlacedBlock[] => {
       continue;
     }
 
+    const snapshot = createPlacementSnapshot({
+      laneId: committedPlacement.laneId,
+      startTime: committedPlacement.startTime,
+      extentMinutes: committedPlacement.extentMinutes
+    });
+
+    const lane = laneById.get(snapshot.laneId);
+    if (!lane) {
+      continue;
+    }
+
     placements.push({
       id: `placement-${block.id}`,
       blockId: block.id,
-      laneId: committedPlacement.laneId,
-      startTime: committedPlacement.startTime,
-      committedPlacement: createCommittedPlacement(
-        committedPlacement.laneId,
-        committedPlacement.startTime,
-        committedPlacement.extentMinutes,
-        laneById
-      )
+      laneId: snapshot.laneId,
+      startTime: snapshot.startTime,
+      committedPlacement: {
+        laneId: snapshot.laneId,
+        startTime: snapshot.startTime,
+        extentMinutes: snapshot.extentMinutes,
+        slot: {
+          dayKey: lane.dayKey,
+          timeSlot: snapshot.startTime
+        }
+      }
     });
   }
 
@@ -118,7 +131,7 @@ const createInitialPlacements = (blocks: TimeBlock[]): PlacedBlock[] => {
 };
 
 export const createBoardWeek = (blocks: TimeBlock[]): BoardState => {
-  const normalizedBlocks = blocks.map((block) => normalizeTemplateExtent(block));
+  const normalizedBlocks = blocks.map((block) => normalizeBlockExtent(block, { defaultExtentMinutes: block.state === 'template' ? 30 : 60 }) as TimeBlock);
 
   return withQueueProjectionApplied({
     blocks: normalizedBlocks,

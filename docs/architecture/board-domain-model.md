@@ -108,3 +108,11 @@ Multiple placements are allowed in the same lane/time interval. Projection adds 
 - Committed entries removed from planning remain represented as unplanned changed candidates (red) instead of disappearing.
 - PSP template defaults are fixed to `extentMinutes=30`; template cards remain label-only in candidate view and only acquire interval data after placement.
 - Block payload metadata now includes `description`, editable via swimlane double-click interaction; imported entries can start with source description payload.
+
+
+## Direct foundation ownership
+
+- Block lifecycle transitions and extent mechanics are now executed through `BLOCK_ENGINE_FOUNDATION` runtime APIs (`changeBlockState`, `changeBlockExtent`, `normalizeBlockExtent`).
+- Template/source cloning now uses `instantiateBlockFromSource`.
+- Committed placement snapshots now use `createPlacementSnapshot`.
+- Time-aware day/lane placement remains application-owned in the POC.

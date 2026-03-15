@@ -1,29 +1,20 @@
+import { buildQueueItem, createQueueId as createFoundationQueueId, createQueueItemId } from 'async_integration_foundation';
+import { changeBlockExtent, resizePlacement } from 'block_engine_foundation';
 import type {
   BoardState,
   DayKey,
   DayLane,
   DayLaneId,
   PlacementSlot,
-  PlacedBlock,
   Queue,
   QueueId,
   QueueItem,
-  QueueItemId,
   QueueOperation,
   TimeBlock,
   TimeBlockId,
   TimeOfDay
 } from './board-types';
-import {
-  clampToPlanningWindow,
-  deriveEndTime,
-  isWithinPlanningWindow,
-  PLANNING_WINDOW_END,
-  PLANNING_WINDOW_START,
-  shiftTimeByMinutes,
-  SLOT_MINUTES,
-  toMinutesOfDay
-} from './time-slot';
+import { clampToPlanningWindow, PLANNING_WINDOW_END, PLANNING_WINDOW_START, SLOT_MINUTES } from './time-slot';
 
 export const getPlacementForBlock = (state: BoardState, blockId: TimeBlockId) =>
   state.placements.find((placement) => placement.blockId === blockId);
@@ -43,47 +34,31 @@ const buildSlot = (laneLookup: Map<DayLaneId, DayLane>, laneId: DayLaneId, start
 };
 
 
-const buildDeterministicId = (...parts: string[]): string => {
-  const normalized = parts.join('|');
-  let hash = 2166136261;
-
-  for (let index = 0; index < normalized.length; index += 1) {
-    hash ^= normalized.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-
-  return Math.abs(hash >>> 0).toString(16).padStart(8, '0');
-};
-
-export const createQueueId = (scope = 'weekly-planning'): QueueId => `queue-${buildDeterministicId(scope)}`;
-
-const createQueueItemId = (queueId: QueueId, blockId: TimeBlockId, operation: QueueOperation, dayKey: DayKey, startTime: TimeOfDay): QueueItemId =>
-  `queue-item-${buildDeterministicId(queueId, blockId, operation, dayKey, startTime)}`;
-
 export const formatInterval = (startTime: TimeOfDay, endTime: TimeOfDay): string => `${startTime} - ${endTime}`;
 
-const buildQueueItem = (
+const buildQueueItemFromFoundation = (
   queueId: QueueId,
   block: TimeBlock,
   slot: PlacementSlot,
   operation: QueueOperation,
   reason: string
 ): QueueItem => {
-  const startTime = slot.timeSlot;
-  const endTime = deriveEndTime(startTime, block.extentMinutes);
+  const queueItemId = createQueueItemId({
+    queueId,
+    blockId: block.id,
+    operation,
+    dayKey: slot.dayKey,
+    startTime: slot.timeSlot
+  });
 
-  return {
-  id: createQueueItemId(queueId, block.id, operation, slot.dayKey, startTime),
-  queueId,
-  blockId: block.id,
-  title: block.title,
-  dayKey: slot.dayKey,
-  startTime,
-  endTime,
-  interval: formatInterval(startTime, endTime),
-  operation,
-  reason
-};
+  return buildQueueItem({
+    id: queueItemId,
+    queueId,
+    block,
+    slot,
+    operation,
+    reason
+  }) as QueueItem;
 };
 
 const laneLookupFromState = (state: BoardState) => new Map(state.lanes.map((lane) => [lane.id, lane]));
@@ -98,7 +73,7 @@ const queueItemForBlock = (state: BoardState, blockId: TimeBlockId): QueueItem |
   const laneLookup = laneLookupFromState(state);
 
   if (block.state === 'uncommitted' || block.state === 'imported') {
-    return buildQueueItem(
+    return buildQueueItemFromFoundation(
       state.queue.id,
       block,
       buildSlot(laneLookup, placement.laneId, placement.startTime),
@@ -121,10 +96,16 @@ const queueItemForBlock = (state: BoardState, blockId: TimeBlockId): QueueItem |
   }
 
   if (placement.laneId === 'unplanned') {
-    return buildQueueItem(state.queue.id, block, committed.slot, 'delete', 'Committed block was removed from its committed slot.');
+    return buildQueueItemFromFoundation(
+      state.queue.id,
+      block,
+      committed.slot,
+      'delete',
+      'Committed block was removed from its committed slot.'
+    );
   }
 
-  return buildQueueItem(
+  return buildQueueItemFromFoundation(
     state.queue.id,
     block,
     buildSlot(laneLookup, placement.laneId, placement.startTime),
@@ -202,10 +183,6 @@ type ResizeInstruction = {
   slotDelta: number;
 };
 
-const MINIMUM_EXTENT_MINUTES = SLOT_MINUTES;
-
-const clamp = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value));
-
 export const resizePlacedBlock = (state: BoardState, blockId: TimeBlockId, instruction: ResizeInstruction): BoardState => {
   const block = getBlockById(state, blockId);
   const placement = getPlacementForBlock(state, blockId);
@@ -214,34 +191,20 @@ export const resizePlacedBlock = (state: BoardState, blockId: TimeBlockId, instr
     return state;
   }
 
-  const requestedDelta = Math.round(instruction.slotDelta) * SLOT_MINUTES;
-  if (requestedDelta === 0) {
-    return state;
-  }
-
-  const planningStart = toMinutesOfDay(PLANNING_WINDOW_START);
-  const planningEnd = toMinutesOfDay(PLANNING_WINDOW_END);
-  const currentStart = toMinutesOfDay(placement.startTime);
-  const currentEnd = currentStart + block.extentMinutes;
-  const maxRetract = block.extentMinutes - MINIMUM_EXTENT_MINUTES;
-
-  let nextStart = placement.startTime;
-  let nextExtent = block.extentMinutes;
-
-  if (instruction.edge === 'bottom') {
-    const maxExtend = planningEnd - currentEnd;
-    const boundedDelta = clamp(requestedDelta, -maxRetract, maxExtend);
-    nextExtent = block.extentMinutes + boundedDelta;
-  } else {
-    const maxExtendUpward = currentStart - planningStart;
-    const boundedDelta = clamp(requestedDelta, -maxExtendUpward, maxRetract);
-    nextStart = shiftTimeByMinutes(placement.startTime, boundedDelta);
-    nextExtent = block.extentMinutes - boundedDelta;
-  }
-
-  if (!isWithinPlanningWindow(nextStart, nextExtent)) {
-    return state;
-  }
+  const resizeResult = resizePlacement({
+    startTime: placement.startTime,
+    extentMinutes: block.extentMinutes,
+    edge: instruction.edge,
+    slotDelta: instruction.slotDelta,
+    slotMinutes: SLOT_MINUTES,
+    minimumExtentMinutes: SLOT_MINUTES,
+    planningWindow: {
+      start: PLANNING_WINDOW_START,
+      end: PLANNING_WINDOW_END
+    }
+  });
+  const nextStart = resizeResult.startTime;
+  const nextExtent = resizeResult.extentMinutes;
 
   if (nextStart === placement.startTime && nextExtent === block.extentMinutes) {
     return state;
@@ -249,14 +212,7 @@ export const resizePlacedBlock = (state: BoardState, blockId: TimeBlockId, instr
 
   return withQueueProjection({
     ...state,
-    blocks: state.blocks.map((candidate) =>
-      candidate.id === block.id
-        ? {
-            ...candidate,
-            extentMinutes: nextExtent
-          }
-        : candidate
-    ),
+    blocks: state.blocks.map((candidate) => (candidate.id === block.id ? (changeBlockExtent(candidate, nextExtent) as TimeBlock) : candidate)),
     placements: state.placements.map((candidate) =>
       candidate.blockId === blockId
         ? {
@@ -268,16 +224,28 @@ export const resizePlacedBlock = (state: BoardState, blockId: TimeBlockId, instr
   });
 };
 
+export const createQueueId = (scope = 'weekly-planning'): QueueId => createFoundationQueueId(scope);
+
 export const createCommittedPlacement = (
   laneId: DayLaneId,
   startTime: TimeOfDay,
   extentMinutes: number | undefined,
   laneById: Map<DayLaneId, DayLane>
-): { laneId: DayLaneId; startTime: TimeOfDay; slot: { dayKey: DayKey; timeSlot: string }; extentMinutes?: number } => ({
-  laneId,
-  startTime,
-  slot: buildSlot(laneById, laneId, startTime),
-  extentMinutes
-});
+): { laneId: DayLaneId; startTime: TimeOfDay; slot: { dayKey: DayKey; timeSlot: string }; extentMinutes?: number } => {
+  const lane = laneById.get(laneId);
+  if (!lane) {
+    throw new Error(`Unknown lane id: ${laneId}`);
+  }
+
+  return {
+    laneId,
+    startTime,
+    extentMinutes,
+    slot: {
+      dayKey: lane.dayKey,
+      timeSlot: startTime
+    }
+  };
+};
 
 export const withQueueProjectionApplied = withQueueProjection;
