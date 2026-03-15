@@ -7,7 +7,7 @@ describe('time slots', () => {
 
     expect(slots[0]).toBe('06:00');
     expect(slots[1]).toBe('06:30');
-    expect(slots.at(-1)).toBe('17:30');
+    expect(slots[slots.length - 1]).toBe('17:30');
     expect(slots).toHaveLength(24);
   });
 

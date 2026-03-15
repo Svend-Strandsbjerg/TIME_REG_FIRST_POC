@@ -10,11 +10,13 @@ type Props = {
   fromLaneId?: string;
   onResizeTop?: (blockId: string, slotDelta: number) => void;
   onResizeBottom?: (blockId: string, slotDelta: number) => void;
+  onDoubleClick?: (blockId: string) => void;
+  visualContext?: 'candidate' | 'placed';
 };
 
 const SLOT_HEIGHT_PX = extentToCalendarHeight(SLOT_MINUTES);
 
-export const TimeBlockCard = ({ card, fromLaneId, onResizeBottom, onResizeTop }: Props) => {
+export const TimeBlockCard = ({ card, fromLaneId, onDoubleClick, onResizeBottom, onResizeTop, visualContext = 'candidate' }: Props) => {
   const isResizingRef = useRef(false);
 
   const beginResize = (event: ReactPointerEvent<HTMLDivElement>, edge: 'top' | 'bottom') => {
@@ -63,7 +65,8 @@ export const TimeBlockCard = ({ card, fromLaneId, onResizeBottom, onResizeTop }:
         }
         writeBlockPayload(event, { blockId: card.block.id, fromLaneId });
       }}
-      className={`time-block-card time-block-card--${card.state}`}
+      onDoubleClick={() => onDoubleClick?.(card.block.id)}
+      className={`time-block-card time-block-card--${card.state} time-block-card--${visualContext}`}
       style={card.heightMinutes ? { height: `${extentToCalendarHeight(card.heightMinutes)}px` } : undefined}
     >
       {(onResizeTop || onResizeBottom) && (
@@ -77,12 +80,7 @@ export const TimeBlockCard = ({ card, fromLaneId, onResizeBottom, onResizeTop }:
       <strong>{card.block.title}</strong>
       {card.isTemplate ? <small>Reusable template</small> : null}
       {card.templateSourceBlockId ? <small>From template: {card.templateSourceBlockId}</small> : null}
-      <span>{card.block.extentMinutes} min</span>
-      {card.startTime && card.endTime ? (
-        <small>
-          {card.startTime}–{card.endTime}
-        </small>
-      ) : null}
+      <span>{card.interval ?? 'Interval TBD'}</span>
       {(onResizeTop || onResizeBottom) && (
         <div
           className="resize-handle resize-handle--bottom"

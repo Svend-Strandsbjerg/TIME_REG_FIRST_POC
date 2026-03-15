@@ -26,7 +26,9 @@ Owns interaction intent only:
 
 - drag/drop captures target lane + slot start time
 - edge-drag resize intent (top vs bottom + snapped slot delta)
-- rendering of state color (`template` purple, `imported` blue, `uncommitted` red, `committed` orange) + time-position + extent-based height
+- rendering of candidate color (`template` purple, `imported` blue) and placed color (`uncommitted` red, `committed` yellow) + time-position + extent-based height
+- imported-candidate double-click interaction for auto-placement
+- side-by-side overlap layout rendering based on core-provided schedule intervals
 
 No queue decision logic or domain math is implemented directly in UI.
 
@@ -44,7 +46,7 @@ This separation is key for portability and future queue payload evolution.
 
 ## Queue simulation strategy
 
-- One queue (`planning-queue`, status `paused`)
+- One deterministic queue ID (`queue-<hash>`, status `paused`)
 - Items include real scheduling coordinates (day + start time)
 - Operations: `create`/`update`/`delete`
 - Extent changes are already represented in state, enabling future queue payload inclusion without changing the model shape
@@ -52,7 +54,7 @@ This separation is key for portability and future queue payload evolution.
 
 ## Overlap policy (POC)
 
-The planner currently allows deterministic free placement without advanced overlap resolution. This is documented and intentionally deferred.
+The planner allows concurrent placements. Core projections annotate each placed card with deterministic overlap-group layout metadata (`layoutColumn`, `layoutColumnCount`), and UI renders parallel blocks side-by-side.
 
 
 ## Template spawn behavior
@@ -60,3 +62,10 @@ The planner currently allows deterministic free placement without advanced overl
 - `template` candidates stay in the unplanned list permanently as a reusable palette source.
 - Dragging a template into a lane creates a new block instance with `state=uncommitted`.
 - Spawned blocks keep template provenance metadata (`templateSourceBlockId`, `templatePspElement`).
+
+
+## Identifier strategy
+
+- Queue IDs are deterministic identifiers generated from a stable scope hash (`createQueueId`).
+- Queue item IDs are deterministic identifiers generated from queue ID + block ID + operation + day + start time.
+- Labels/titles remain human-readable fields and are not used as IDs.

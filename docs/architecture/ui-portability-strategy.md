@@ -45,3 +45,10 @@ Core/application own:
 - Core preserves portable state meaning (`template`, `imported`, `uncommitted`, `committed`).
 - UI layers can render those states differently (colors/badges/palette behavior) without changing core domain rules.
 - The reusable template-candidate palette concept is portable across React/Fiori/other UI stacks.
+
+
+## Interaction and rendering boundary clarifications
+
+- Imported-candidate double-click auto-placement is UI interaction logic that calls core application commands.
+- Side-by-side overlap layout is UI rendering logic using core overlap-group metadata.
+- Core remains responsible for canonical schedule data, interval derivation, and identifier generation.

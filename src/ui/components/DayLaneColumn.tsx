@@ -34,11 +34,20 @@ export const DayLaneColumn = ({ lane, onDropBlock, onResizeBottom, onResizeTop }
         </div>
       ))}
 
-      {lane.placedBlocks.map((card) => (
+      {lane.placedBlocks.map((card) => {
+        const columnCount = card.layoutColumnCount ?? 1;
+        const columnWidth = 100 / columnCount;
+        const leftOffset = (card.layoutColumn ?? 0) * columnWidth;
+
+        return (
         <div
           key={card.block.id}
           className="lane-block-placement"
-          style={{ top: `${(card.topOffsetMinutes ?? 0) * 2}px` }}
+          style={{
+            top: `${(card.topOffsetMinutes ?? 0) * 2}px`,
+            left: `calc(36px + ${leftOffset}%)`,
+            width: `calc((100% - 40px) * ${columnWidth / 100})`
+          }}
           onDragOver={(event) => event.preventDefault()}
           onDrop={(event) => {
             event.preventDefault();
@@ -53,9 +62,11 @@ export const DayLaneColumn = ({ lane, onDropBlock, onResizeBottom, onResizeTop }
             fromLaneId={lane.lane.id}
             onResizeBottom={onResizeBottom}
             onResizeTop={onResizeTop}
+            visualContext="placed"
           />
         </div>
-      ))}
+      );
+      })}
     </div>
   </section>
 );

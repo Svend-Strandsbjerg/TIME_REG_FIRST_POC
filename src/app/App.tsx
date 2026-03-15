@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { buildPlanningView, convertPlacedBlockToTimeEntryDraft } from '../core/application/board-queries';
 import {
+  autoPlaceImportedBlock,
   createBoardWeek,
   placeBlockOnLane,
   resizeBlockFromBottom,
@@ -43,6 +44,9 @@ export const App = () => {
         }
         onResizeBottom={(blockId, slotDelta) =>
           setState((current) => (current ? resizeBlockFromBottom(current, blockId, slotDelta) : current))
+        }
+        onAutoPlaceImported={(blockId) =>
+          setState((current) => (current ? autoPlaceImportedBlock(current, blockId) : current))
         }
       />
       <section className="draft-preview">

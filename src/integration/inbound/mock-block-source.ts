@@ -62,7 +62,10 @@ const createMockBlocks = (): TimeBlock[] => {
         state: 'imported',
         metadata: {
           ...block.metadata,
-          importedFrom: 'outlook-calendar'
+          importedFrom: 'outlook-calendar',
+          importedDayKey: 'wednesday',
+          importedStartTime: '08:30',
+          importedEndTime: '10:00'
         }
       };
     }

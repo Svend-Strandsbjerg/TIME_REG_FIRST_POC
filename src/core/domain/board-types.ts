@@ -9,6 +9,8 @@ export type DayKey =
   | 'sunday';
 export type DayLaneId = string;
 export type PlacementId = string;
+export type QueueId = string;
+export type QueueItemId = string;
 
 export type BlockState = 'template' | 'imported' | 'uncommitted' | 'committed';
 export type TimeOfDay = string;
@@ -52,8 +54,8 @@ export type PlacedBlock = {
 export type QueueOperation = 'create' | 'update' | 'delete';
 
 export type QueueItem = {
-  id: string;
-  queueId: string;
+  id: QueueItemId;
+  queueId: QueueId;
   blockId: TimeBlockId;
   title: string;
   dayKey: DayKey;
@@ -65,7 +67,7 @@ export type QueueItem = {
 };
 
 export type Queue = {
-  id: string;
+  id: QueueId;
   status: 'paused';
   items: QueueItem[];
 };

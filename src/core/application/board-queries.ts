@@ -1,3 +1,4 @@
+import { formatInterval } from '../domain/board-rules';
 import { deriveEndTime, generatePlanningSlots, toMinutesOfDay } from '../domain/time-slot';
 import type { BlockState, BoardState, DayLane, QueueItem, TimeBlock, TimeEntryDraft, TimeOfDay } from '../domain/board-types';
 
@@ -11,6 +12,8 @@ export type TimeBlockCardView = {
   interval?: string;
   topOffsetMinutes?: number;
   heightMinutes?: number;
+  layoutColumn?: number;
+  layoutColumnCount?: number;
 };
 
 export type DayLaneView = {
@@ -21,7 +24,8 @@ export type DayLaneView = {
 };
 
 export type WeeklyBoardView = {
-  availableBlocks: TimeBlockCardView[];
+  importedCandidates: TimeBlockCardView[];
+  templateCandidates: TimeBlockCardView[];
   lanes: DayLaneView[];
   summary: {
     plannedBlocks: number;
@@ -34,6 +38,44 @@ export type WeeklyBoardView = {
   };
 };
 
+const overlaps = (a: TimeBlockCardView, b: TimeBlockCardView): boolean => {
+  if (!a.startTime || !a.endTime || !b.startTime || !b.endTime) {
+    return false;
+  }
+
+  const aStart = toMinutesOfDay(a.startTime);
+  const aEnd = toMinutesOfDay(a.endTime);
+  const bStart = toMinutesOfDay(b.startTime);
+  const bEnd = toMinutesOfDay(b.endTime);
+
+  return aStart < bEnd && bStart < aEnd;
+};
+
+const withParallelLayout = (placedBlocks: TimeBlockCardView[]): TimeBlockCardView[] => {
+  const sorted = placedBlocks
+    .slice()
+    .sort((a, b) => (a.startTime ?? '').localeCompare(b.startTime ?? '') || (a.endTime ?? '').localeCompare(b.endTime ?? ''));
+
+  const groups: TimeBlockCardView[][] = [];
+
+  for (const card of sorted) {
+    const group = groups.find((candidate) => candidate.some((existing) => overlaps(existing, card)));
+    if (group) {
+      group.push(card);
+    } else {
+      groups.push([card]);
+    }
+  }
+
+  return groups.flatMap((group) =>
+    group.map((card, index) => ({
+      ...card,
+      layoutColumn: index,
+      layoutColumnCount: group.length
+    }))
+  );
+};
+
 export const buildPlanningView = (state: BoardState): WeeklyBoardView => {
   const slots = generatePlanningSlots();
   const planningStartMinutes = toMinutesOfDay(slots[0] ?? '06:00');
@@ -42,13 +84,24 @@ export const buildPlanningView = (state: BoardState): WeeklyBoardView => {
   const blockLookup = new Map(state.blocks.map((block) => [block.id, block]));
 
   const availableBlocks = state.blocks
-    .filter((block) => block.state === 'template' || !placedBlockIds.has(block.id))
-    .map((block) => ({
-      block,
-      state: block.state,
-      isTemplate: block.state === 'template',
-      templateSourceBlockId: typeof block.metadata?.templateSourceBlockId === 'string' ? block.metadata.templateSourceBlockId : undefined
-    }));
+    .filter((block) => block.state === 'template' || (block.state === 'imported' && !placedBlockIds.has(block.id)))
+    .map((block) => {
+      const importedStartTime = typeof block.metadata?.importedStartTime === 'string' ? block.metadata.importedStartTime : undefined;
+      const importedEndTime = typeof block.metadata?.importedEndTime === 'string' ? block.metadata.importedEndTime : undefined;
+      const defaultTemplateStart = block.state === 'template' ? '08:30' : undefined;
+      const resolvedStartTime = importedStartTime ?? defaultTemplateStart;
+      const resolvedEndTime = resolvedStartTime ? importedEndTime ?? deriveEndTime(resolvedStartTime, block.extentMinutes) : undefined;
+
+      return {
+        block,
+        state: block.state,
+        isTemplate: block.state === 'template',
+        templateSourceBlockId: typeof block.metadata?.templateSourceBlockId === 'string' ? block.metadata.templateSourceBlockId : undefined,
+        startTime: resolvedStartTime,
+        endTime: resolvedEndTime,
+        interval: resolvedStartTime && resolvedEndTime ? formatInterval(resolvedStartTime, resolvedEndTime) : undefined
+      };
+    });
 
   const lanes = [...state.lanes]
     .sort((a, b) => a.order - b.order)
@@ -74,28 +127,33 @@ export const buildPlanningView = (state: BoardState): WeeklyBoardView => {
           templateSourceBlockId: typeof block.metadata?.templateSourceBlockId === 'string' ? block.metadata.templateSourceBlockId : undefined,
           startTime: placement.startTime,
           endTime,
-          interval: `${placement.startTime} - ${endTime}`,
+          interval: formatInterval(placement.startTime, endTime),
           topOffsetMinutes: toMinutesOfDay(placement.startTime) - planningStartMinutes,
           heightMinutes: block.extentMinutes
         });
       }
 
-      const totalHours = placedBlocks.reduce((sum, card) => sum + card.block.extentMinutes / 60, 0);
+      const withLayout = withParallelLayout(placedBlocks);
+      const totalHours = withLayout.reduce((sum, card) => sum + card.block.extentMinutes / 60, 0);
 
       return {
         lane,
-        placedBlocks,
+        placedBlocks: withLayout,
         totalHours: Number(totalHours.toFixed(2)),
         slots
       };
     });
 
+  const importedCandidates = availableBlocks.filter((card) => card.state === 'imported');
+  const templateCandidates = availableBlocks.filter((card) => card.state === 'template');
+
   return {
-    availableBlocks,
+    importedCandidates,
+    templateCandidates,
     lanes,
     summary: {
       plannedBlocks: placedBlockIds.size,
-      unplannedBlocks: availableBlocks.length
+      unplannedBlocks: importedCandidates.length + templateCandidates.length
     },
     queue: state.queue
   };

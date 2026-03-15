@@ -79,3 +79,24 @@ Queue projection now uses actual scheduled start time (`timeSlot`) and day key, 
 ## Interval derivation
 
 Queue/log interval is deterministic: `interval = startTime + ' - ' + (startTime + extentMinutes)`.
+
+
+## Imported baseline placement metadata
+
+Imported candidates can carry baseline scheduling metadata:
+
+- `metadata.importedDayKey`
+- `metadata.importedStartTime`
+- `metadata.importedEndTime` (optional; otherwise derived from `extentMinutes`)
+
+UI double-click auto-placement uses this metadata to place imported blocks directly into the corresponding day lane and start slot.
+
+## Candidate/source semantics vs placed semantics
+
+- Imported candidates are source signals (blue) and are consumed once placed.
+- Template candidates are reusable PSP palette entries (purple) and remain available after drag/spawn.
+- Placed entries are rendered by placed state semantics (`uncommitted` red, `committed` yellow).
+
+## Concurrent placement concept
+
+Multiple placements are allowed in the same lane/time interval. Projection adds overlap-group metadata (`layoutColumn`, `layoutColumnCount`) so UI can render side-by-side blocks without visual overlap.

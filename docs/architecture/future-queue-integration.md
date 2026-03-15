@@ -40,3 +40,10 @@ Extent changes are not yet emitted as distinct queue semantics in this POC, but 
 - Imported blocks can later be materialized from Outlook calendar, Azure records, or SCRUM/task signals while keeping the same `state=imported` core contract.
 - Template blocks can later represent curated/default PSP libraries while keeping reusable candidate palette behavior.
 - Queue/log interval remains derived from placement start time plus block extent.
+
+
+## Identifier and interval guarantees
+
+- Queue and queue-item IDs are real deterministic unique identifiers (not display labels).
+- Queue interval display is always derived from placement start time + block extent.
+- Imported candidates already model source metadata and can later map 1:1 from Outlook/Azure/SCRUM payloads.
