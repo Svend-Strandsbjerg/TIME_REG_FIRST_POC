@@ -9,6 +9,7 @@ const blocks: TimeBlock[] = [
     title: 'Meeting with Customer A',
     durationMinutes: 60,
     source: 'mock-api',
+    state: 'committed',
     metadata: {
       committedPlacement: {
         laneId: 'lane-monday',
@@ -16,7 +17,7 @@ const blocks: TimeBlock[] = [
       }
     }
   },
-  { id: 'b2', title: 'Internal workshop', durationMinutes: 120, source: 'mock-api' }
+  { id: 'b2', title: 'Internal workshop', durationMinutes: 120, source: 'mock-api', state: 'uncommitted' }
 ];
 
 describe('board-service queue simulation', () => {
@@ -25,6 +26,20 @@ describe('board-service queue simulation', () => {
 
     expect(board.queue.id).toBe('planning-queue');
     expect(board.queue.status).toBe('paused');
+  });
+
+  it('exposes block state through the planning read model', () => {
+    const board = createBoardWeek(blocks);
+    const view = buildPlanningView(board);
+
+    const mondayLane = view.lanes.find((lane) => lane.lane.id === 'lane-monday');
+    expect(mondayLane?.placedBlocks[0]).toMatchObject({
+      state: 'committed'
+    });
+
+    expect(view.availableBlocks[0]).toMatchObject({
+      state: 'uncommitted'
+    });
   });
 
   it('placing an uncommitted item into a lane creates a queue item with required fields', () => {

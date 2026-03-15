@@ -16,6 +16,8 @@ import { slotFromOrder } from './time-slot';
 export const getPlacementForBlock = (state: BoardState, blockId: TimeBlockId) =>
   state.placements.find((placement) => placement.blockId === blockId);
 
+export const getBlockById = (state: BoardState, blockId: TimeBlockId) => state.blocks.find((block) => block.id === blockId);
+
 const normalizeLaneOrders = (placements: PlacedBlock[]): PlacedBlock[] => {
   const byLane = new Map<DayLaneId, PlacedBlock[]>();
 
@@ -66,19 +68,15 @@ const buildQueueItem = (
 const laneLookupFromState = (state: BoardState) => new Map(state.lanes.map((lane) => [lane.id, lane]));
 
 const queueItemForBlock = (state: BoardState, blockId: TimeBlockId): QueueItem | undefined => {
-  const placement = state.placements.find((item) => item.blockId === blockId);
-  const block = state.blocks.find((item) => item.id === blockId);
-  if (!block) {
+  const placement = getPlacementForBlock(state, blockId);
+  const block = getBlockById(state, blockId);
+  if (!block || !placement) {
     return undefined;
   }
 
   const laneLookup = laneLookupFromState(state);
 
-  if (!placement) {
-    return undefined;
-  }
-
-  if (placement.state === 'uncommitted') {
+  if (block.state === 'uncommitted') {
     return buildQueueItem(
       state.queue.id,
       block,
@@ -88,7 +86,7 @@ const queueItemForBlock = (state: BoardState, blockId: TimeBlockId): QueueItem |
     );
   }
 
-  if (!placement.committedPlacement) {
+  if (block.state !== 'committed' || !placement.committedPlacement) {
     return undefined;
   }
 
@@ -128,11 +126,12 @@ const withQueueProjection = (state: BoardState): BoardState => ({
 });
 
 const restoreCommittedPlacementIfNeeded = (
+  block: TimeBlock,
   placement: PlacedBlock,
   targetLaneId: DayLaneId,
   laneSize: number
 ): { laneId: DayLaneId; order: number } => {
-  if (placement.state === 'committed' && placement.laneId === 'unplanned' && placement.committedPlacement) {
+  if (block.state === 'committed' && placement.laneId === 'unplanned' && placement.committedPlacement) {
     return {
       laneId: placement.committedPlacement.laneId,
       order: placement.committedPlacement.order
@@ -147,6 +146,11 @@ const restoreCommittedPlacementIfNeeded = (
 
 export const appendPlacement = (state: BoardState, blockId: TimeBlockId, laneId: DayLaneId): BoardState => {
   const existing = getPlacementForBlock(state, blockId);
+  const block = getBlockById(state, blockId);
+  if (!block) {
+    return state;
+  }
+
   const laneSize = state.placements.filter((placement) => placement.laneId === laneId).length;
 
   const nextPlacements = existing
@@ -155,15 +159,14 @@ export const appendPlacement = (state: BoardState, blockId: TimeBlockId, laneId:
           return placement;
         }
 
-        const target = restoreCommittedPlacementIfNeeded(placement, laneId, laneSize);
+        const target = restoreCommittedPlacementIfNeeded(block, placement, laneId, laneSize);
         return { ...placement, laneId: target.laneId, order: target.order };
       })
     : state.placements.concat({
         id: `placement-${blockId}`,
         blockId,
         laneId,
-        order: laneSize,
-        state: 'uncommitted'
+        order: laneSize
       });
 
   return withQueueProjection({
@@ -174,12 +177,13 @@ export const appendPlacement = (state: BoardState, blockId: TimeBlockId, laneId:
 
 export const removePlacement = (state: BoardState, blockId: TimeBlockId): BoardState => {
   const existing = getPlacementForBlock(state, blockId);
-  if (!existing) {
+  const block = getBlockById(state, blockId);
+  if (!existing || !block) {
     return state;
   }
 
   const nextPlacements =
-    existing.state === 'committed'
+    block.state === 'committed'
       ? state.placements.map((placement) =>
           placement.blockId === blockId ? { ...placement, laneId: 'unplanned', order: 0 } : placement
         )

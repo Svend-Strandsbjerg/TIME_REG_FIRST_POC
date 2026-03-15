@@ -1,11 +1,11 @@
 import { durationToSize } from '../domain/time-block';
 import { slotFromOrder } from '../domain/time-slot';
-import type { BoardState, DayLane, PlacementState, QueueItem, TimeBlock, TimeEntryDraft } from '../domain/board-types';
+import type { BlockState, BoardState, DayLane, QueueItem, TimeBlock, TimeEntryDraft } from '../domain/board-types';
 
 export type TimeBlockCardView = {
   block: TimeBlock;
   size: ReturnType<typeof durationToSize>;
-  state: PlacementState;
+  state: BlockState;
   timeSlot?: string;
 };
 
@@ -35,7 +35,7 @@ export const buildPlanningView = (state: BoardState): WeeklyBoardView => {
 
   const availableBlocks = state.blocks
     .filter((block) => !placedBlockIds.has(block.id))
-    .map((block) => ({ block, size: durationToSize(block.durationMinutes), state: 'uncommitted' as const }));
+    .map((block) => ({ block, size: durationToSize(block.durationMinutes), state: block.state }));
 
   const lanes = [...state.lanes]
     .sort((a, b) => a.order - b.order)
@@ -55,7 +55,7 @@ export const buildPlanningView = (state: BoardState): WeeklyBoardView => {
         placedBlocks.push({
           block,
           size: durationToSize(block.durationMinutes),
-          state: placement.state,
+          state: block.state,
           timeSlot: slotFromOrder(placement.order)
         });
       }

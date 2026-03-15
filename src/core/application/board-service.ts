@@ -38,7 +38,7 @@ const createInitialPlacements = (blocks: TimeBlock[]): PlacedBlock[] => {
 
   for (const block of blocks) {
     const committedPlacement = parseCommittedMetadata(block);
-    if (!committedPlacement || !laneById.has(committedPlacement.laneId)) {
+    if (block.state !== 'committed' || !committedPlacement || !laneById.has(committedPlacement.laneId)) {
       continue;
     }
 
@@ -47,7 +47,6 @@ const createInitialPlacements = (blocks: TimeBlock[]): PlacedBlock[] => {
       blockId: block.id,
       laneId: committedPlacement.laneId,
       order: committedPlacement.order,
-      state: 'committed',
       committedPlacement: createCommittedPlacement(committedPlacement.laneId, committedPlacement.order, laneById)
     });
   }
