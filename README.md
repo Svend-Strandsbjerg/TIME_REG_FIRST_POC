@@ -1,63 +1,111 @@
-# AI-First Engineering Repository Foundation
+# Timesheet Planning App (UI-first, core-driven)
 
-This repository is a **reusable project foundation** for teams that build software with both human engineers and AI agents.
+This repository contains the first usable **weekly timesheet planning app** built to stay aligned with:
 
-It is intentionally generic: it provides standards, process guidance, contribution workflows, and CI quality gates without introducing product-specific code.
+- `BLOCK_ENGINE_FOUNDATION` (block/container/placement movement model)
+- `ASYNC_INTEGRATION_FOUNDATION` (queue-ready handoff direction)
 
-## Why this foundation exists
+Users can drag incoming time-registration candidates from an unplanned pool into **7 day swimlanes (Monday-Sunday)**.
 
-Many projects fail to scale safely with AI assistance because expectations are implicit or inconsistent. This foundation makes those expectations explicit from day one:
+## Scope in this phase
 
-- Branch-based development (no direct work on `main`)
-- Pull requests as the unit of change and review
-- Documented standards for code, tests, and docs
-- CI checks that validate repository hygiene
-- Human-reviewed merges for production-quality governance
+- Left panel with unplanned candidate blocks (mock inbound source)
+- Weekly board with seven day lanes
+- Drag-and-drop: pool -> lane, lane -> lane, lane -> pool
+- Duration-based visual sizing
+- Stable lane ordering after movement
+- Explicit projections for:
+  - raw state (`BoardState`)
+  - planning view (`WeeklyBoardView`)
+  - future export (`TimeEntryDraft[]`, queue-ready records)
 
-## How this supports AI-assisted development
+## Out of scope in this phase
 
-This template treats AI agents as first-class contributors while preserving engineering quality:
+- Backend persistence
+- Real inbound API integration
+- Queue dispatch/retry/dead-letter
+- Real SAP outbound call
+- Auth/authz
 
-- `AGENTS.md` defines operating rules for AI contributors
-- PR templates require clear scope, test evidence, and risk notes
-- Process docs define a reproducible issue → branch → PR workflow
-- Testing and documentation standards prevent "code-only" changes
+## Runtime requirements
 
-## How to use this template for future projects
+- Node.js `>=20.10.0` (also in `.nvmrc`)
+- npm `>=10`
 
-1. Create a new repository from this foundation.
-2. Update placeholders (CODEOWNERS, support contacts, security policy details, CI language/runtime steps).
-3. Add product code incrementally under agreed project directories.
-4. Keep standards/process documentation up to date as the project evolves.
-5. Protect `main` with required status checks and human review rules.
+## Install and run (reproducible)
 
-## Development workflow (high level)
+```bash
+npm run setup
+npm run dev
+```
 
-1. Start from an issue/task with clear scope and acceptance criteria.
-2. Create a short-lived branch.
-3. Implement a small, reviewable change.
-4. Add or update tests and docs as relevant.
-5. Open a pull request using the provided template.
-6. Pass CI checks and complete human review.
-7. Merge into `main` only after approval.
+Alternative:
 
-## Repository map
+```bash
+npm install
+npm run dev
+```
 
-- `ARCHITECTURE.md`: Operating model for source control, CI, review, and quality gates.
-- `AGENTS.md`: Rules for AI agents contributing safely.
-- `CONTRIBUTING.md`: Contribution guide for humans and AI agents.
-- `docs/standards/`: Engineering, testing, and documentation standards.
-- `docs/process/`: Repeatable workflows for development and PR execution.
-- `.github/`: PR template, issue templates, and CI workflows (repository hygiene plus workflow-file validation).
-- `tests/`: Test scaffolding and repository-level validation scripts.
+## Local verification checklist
 
-## Non-goals of this repository
+```bash
+npm run test
+npm run build
+```
 
-This foundation intentionally does **not** include:
+Expected in this phase:
 
-- Business/domain logic
-- Product UI/API features
-- Demo application layers
-- Project-specific architecture implementations
+- app starts locally with mock blocks
+- 7 swimlanes are visible
+- drag/drop placement and return flow works
+- tests verify framework-neutral movement/projection behavior
+- build succeeds for production bundle
 
-Those belong in downstream repositories created from this template.
+## Architecture map
+
+- `src/core/domain`: framework-neutral entities + rules
+- `src/core/application`: use-case operations + projections
+- `src/integration`: inbound adapter boundary + queue/SAP placeholders
+- `src/ui` + `src/app`: React adapter only
+
+## Foundation alignment
+
+- Block -> `TimeBlock`
+- Container -> `DayLane`
+- Placement -> `PlacedBlock`
+- Projection -> `WeeklyBoardView`
+
+Placed blocks are converted to `TimeEntryDraft`, then to queue-ready records. Dispatch remains outside this app and belongs to async integration infrastructure.
+
+## Documentation index
+
+- `ARCHITECTURE.md`
+- `docs/architecture/board-domain-model.md`
+- `docs/architecture/ui-portability-strategy.md`
+- `docs/architecture/future-queue-integration.md`
+- `docs/architecture/fiori-migration-path.md`
+- `docs/architecture/activity-domain-model.md`
+- `docs/architecture/activity-to-block-flow.md`
+- `docs/architecture/ai-enrichment-future.md`
+- `docs/process/implementation-roadmap.md`
+- `docs/process/runtime-verification.md`
+
+## Next functional phase
+
+The next phase should use the existing model transition path:
+
+1. enrich placed blocks with registration metadata
+2. project `PlacedBlock` -> `TimeEntryDraft`
+3. map drafts to queue-ready records
+4. hand queue-ready records to `ASYNC_INTEGRATION_FOUNDATION` for dispatch/retry handling
+
+UI remains responsible only for invoking application services and rendering projections.
+
+
+## Activity Graph (introduced)
+
+The model now includes a lightweight contextual layer:
+
+`Activity -> ActivityInstance -> TimeBlock -> PlacedBlock -> TimeEntryDraft -> Queue-ready`
+
+This keeps planning behavior unchanged while adding source/context metadata for richer future flows (calendar, AI, favorites, project tasks).
