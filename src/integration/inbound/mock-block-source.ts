@@ -22,13 +22,28 @@ const INSTANCES: ActivityInstance[] = [
 const createMockBlocks = (): TimeBlock[] => {
   const activityById = new Map(ACTIVITIES.map((activity) => [activity.id, activity]));
 
-  return INSTANCES.map((instance) => {
+  return INSTANCES.map((instance, index) => {
     const activity = activityById.get(instance.activityId);
     if (!activity) {
       throw new Error(`Missing activity for instance: ${instance.id}`);
     }
 
-    return createTimeBlockFromActivityInstance(activity, instance, 'mock-api');
+    const block = createTimeBlockFromActivityInstance(activity, instance, 'mock-api');
+
+    if (index === 0) {
+      return {
+        ...block,
+        metadata: {
+          ...block.metadata,
+          committedPlacement: {
+            laneId: 'lane-monday',
+            order: 0
+          }
+        }
+      };
+    }
+
+    return block;
   });
 };
 

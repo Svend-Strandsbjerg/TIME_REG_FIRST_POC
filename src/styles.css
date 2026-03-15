@@ -10,14 +10,16 @@ body {
 
 .layout {
   display: grid;
-  grid-template-columns: 300px 1fr;
+  grid-template-columns: 280px 1fr 320px;
   gap: 1rem;
   padding: 1rem;
+  align-items: start;
 }
 
 .panel,
 .board-section,
-.draft-preview {
+.draft-preview,
+.queue-panel {
   background: white;
   border-radius: 12px;
   padding: 1rem;
@@ -39,7 +41,7 @@ body {
 }
 
 .lane {
-  border: 1px solid #dbe4f0;
+  border: 1px dashed #dbe4f0;
   border-radius: 8px;
   padding: 0.5rem;
   min-height: 220px;
@@ -50,7 +52,14 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.lane-summary {
+  display: block;
   margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  color: #475569;
 }
 
 .time-block-card {
@@ -62,6 +71,16 @@ body {
   flex-direction: column;
   justify-content: space-between;
   cursor: grab;
+}
+
+.time-block-card--uncommitted {
+  border-color: #ef4444;
+  background: #fee2e2;
+}
+
+.time-block-card--committed {
+  border-color: #f59e0b;
+  background: #ffedd5;
 }
 
 .summary {
@@ -78,10 +97,22 @@ body {
   color: #475569;
 }
 
-.lane {
-  border-style: dashed;
-}
-
 .time-block-card:active {
   cursor: grabbing;
+}
+
+.queue-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.queue-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.5rem;
+  display: grid;
+  gap: 0.2rem;
 }

@@ -1,27 +1,40 @@
 # Future Queue Integration Plan
 
-## Current flow (already implemented)
+## Current implemented simulation
 
-1. Planner mutates raw `BoardState` via application commands.
-2. Application projects placements into `TimeEntryDraft[]`.
-3. Integration adapter maps drafts to queue-ready records with deterministic sequence.
+The current UI-first phase now includes a domain/application queue simulation:
 
-## Next phase contract flow
+- one queue (`planning-queue`)
+- status fixed to `paused`
+- queue items produced deterministically from placement transitions
+- operations represented as `create` / `update` / `delete`
+
+This is intentionally not a dispatcher; it is a queue-aware board projection.
+
+## Current mapping inside this app
+
+- Uncommitted placement in lane -> queue item `create`
+- Uncommitted return to pool -> queue item removed
+- Committed removed from committed slot -> queue item `delete`
+- Committed moved to other slot/day -> queue item `update`
+- Committed restored to original slot -> queue item removed
+
+## Handoff target (next integration)
 
 ```text
-PlacedBlock -> TimeEntryDraft -> QueueReadyTimeEntry -> ASYNC_INTEGRATION_FOUNDATION QueueItem
+PlacedBlock/QueueSimulation -> adapter mapping -> ASYNC_INTEGRATION_FOUNDATION QueueItem
 ```
 
-## Responsibilities boundary
+## Adapter responsibilities for real handoff
 
-- Core/Application: domain logic + projections only
-- Integration adapter: mapping to queue contracts
-- Async integration foundation: queue persistence, dispatch, retry, dead-letter
-- UI: never dispatches, only invokes application services
+1. Map simulation queue item fields to foundation queue contract fields.
+2. Preserve operation semantics (`create`, `update`, `delete`).
+3. Add integration context (tenant/user/week) and idempotency metadata.
+4. Enqueue via async foundation API.
 
-## Concrete implementation steps
+## Boundary clarity
 
-1. Add queue context identity strategy (e.g. week/employee scope).
-2. Introduce adapter mapping from `QueueReadyTimeEntry` to foundation queue item schema.
-3. Pass mapped queue items to async foundation enqueue API.
-4. Return status/read model back to UI without exposing worker internals.
+- Core/Application: queue decision rules and deterministic projection
+- Integration adapter: translation + enqueue call
+- Async foundation: persistence, worker dispatch, retries, dead-letter, status
+- UI: monitor and command invocation only

@@ -2,21 +2,52 @@
 
 ## Core types
 
-- `TimeBlock`: candidate time registration unit.
-- `DayLane`: weekly swimlane container with deterministic order.
-- `PlacedBlock`: placement relation of a block inside a lane with lane-local order.
-- `BoardState`: aggregate state (`blocks`, `lanes`, `placements`).
+- `TimeBlock`: candidate registration unit.
+- `DayLane`: weekly swimlane container.
+- `PlacedBlock`: lane placement relation including:
+  - lane id
+  - lane-local order
+  - state (`uncommitted` or `committed`)
+  - optional committed baseline placement
+- `Queue` and `QueueItem`: simulated async change backlog.
+- `BoardState`: aggregate (`blocks`, `lanes`, `placements`, `queue`).
 
-## Rule set
+## Slot representation
 
-- A block is either unplanned (no placement) or planned (has placement).
-- A lane is an ordered consistency boundary.
-- Placement movement is explicit command behavior.
-- View rendering reads from projections, not raw mutation in UI.
+Slots are intentionally lightweight and deterministic:
 
-## Mapping to block movement foundation
+- slot is derived from lane-local order
+- formula: `09:00 + order` (hourly increments)
+- queue items and committed comparison use this normalized slot representation
 
-- Block -> `TimeBlock`
-- Container -> `DayLane`
-- Placement -> `PlacedBlock`
-- Query projection -> `WeeklyBoardView`
+## Committed placement memory
+
+Committed placements carry remembered baseline context:
+
+- committed lane id
+- committed order
+- committed slot (`dayKey`, `timeSlot`)
+
+This enables:
+
+- baseline comparison for change detection
+- delete/update queue semantics
+- automatic restoration when a removed committed block is returned
+
+## Queue projection rules
+
+- `uncommitted + placed` => queue `create`
+- `uncommitted + unplaced` => no queue item
+- `committed + at baseline` => no queue item
+- `committed + removed` => queue `delete`
+- `committed + moved` => queue `update`
+
+Rules are deterministic and computed from state, not ad hoc UI flags.
+
+## Daily totals logic
+
+Daily totals are read-model values computed from placed blocks in each lane:
+
+`sum(durationMinutes) / 60`
+
+Totals are exposed via `DayLaneView.totalHours` for lane header rendering.

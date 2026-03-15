@@ -1,14 +1,18 @@
 import { durationToSize } from '../domain/time-block';
-import type { BoardState, DayLane, TimeBlock, TimeEntryDraft } from '../domain/board-types';
+import { slotFromOrder } from '../domain/time-slot';
+import type { BoardState, DayLane, PlacementState, QueueItem, TimeBlock, TimeEntryDraft } from '../domain/board-types';
 
 export type TimeBlockCardView = {
   block: TimeBlock;
   size: ReturnType<typeof durationToSize>;
+  state: PlacementState;
+  timeSlot?: string;
 };
 
 export type DayLaneView = {
   lane: DayLane;
   placedBlocks: TimeBlockCardView[];
+  totalHours: number;
 };
 
 export type WeeklyBoardView = {
@@ -18,15 +22,20 @@ export type WeeklyBoardView = {
     plannedBlocks: number;
     unplannedBlocks: number;
   };
+  queue: {
+    id: string;
+    status: 'paused';
+    items: QueueItem[];
+  };
 };
 
 export const buildPlanningView = (state: BoardState): WeeklyBoardView => {
-  const placedBlockIds = new Set(state.placements.map((placement) => placement.blockId));
+  const placedBlockIds = new Set(state.placements.filter((placement) => placement.laneId !== 'unplanned').map((placement) => placement.blockId));
   const blockLookup = new Map(state.blocks.map((block) => [block.id, block]));
 
   const availableBlocks = state.blocks
     .filter((block) => !placedBlockIds.has(block.id))
-    .map((block) => ({ block, size: durationToSize(block.durationMinutes) }));
+    .map((block) => ({ block, size: durationToSize(block.durationMinutes), state: 'uncommitted' as const }));
 
   const lanes = [...state.lanes]
     .sort((a, b) => a.order - b.order)
@@ -35,12 +44,28 @@ export const buildPlanningView = (state: BoardState): WeeklyBoardView => {
         .filter((placement) => placement.laneId === lane.id)
         .sort((a, b) => a.order - b.order);
 
+      const placedBlocks: TimeBlockCardView[] = [];
+
+      for (const placement of placements) {
+        const block = blockLookup.get(placement.blockId);
+        if (!block) {
+          continue;
+        }
+
+        placedBlocks.push({
+          block,
+          size: durationToSize(block.durationMinutes),
+          state: placement.state,
+          timeSlot: slotFromOrder(placement.order)
+        });
+      }
+
+      const totalHours = placedBlocks.reduce((sum, card) => sum + card.block.durationMinutes / 60, 0);
+
       return {
         lane,
-        placedBlocks: placements
-          .map((placement) => blockLookup.get(placement.blockId))
-          .filter((block): block is TimeBlock => Boolean(block))
-          .map((block) => ({ block, size: durationToSize(block.durationMinutes) }))
+        placedBlocks,
+        totalHours: Number(totalHours.toFixed(2))
       };
     });
 
@@ -48,9 +73,10 @@ export const buildPlanningView = (state: BoardState): WeeklyBoardView => {
     availableBlocks,
     lanes,
     summary: {
-      plannedBlocks: state.placements.length,
+      plannedBlocks: placedBlockIds.size,
       unplannedBlocks: availableBlocks.length
-    }
+    },
+    queue: state.queue
   };
 };
 
@@ -59,6 +85,7 @@ export const convertPlacedBlockToTimeEntryDraft = (state: BoardState): TimeEntry
   const blockLookup = new Map(state.blocks.map((block) => [block.id, block]));
 
   return state.placements
+    .filter((placement) => placement.laneId !== 'unplanned')
     .slice()
     .sort((a, b) => a.laneId.localeCompare(b.laneId) || a.order - b.order)
     .map((placement, index) => {

@@ -1,5 +1,6 @@
 import type { WeeklyBoardView } from '../../core/application/board-queries';
 import { AvailableBlocksPanel } from './AvailableBlocksPanel';
+import { QueueLogPanel } from './QueueLogPanel';
 import { WeekSwimlanes } from './WeekSwimlanes';
 
 type Props = {
@@ -20,5 +21,6 @@ export const TimeRegistrationBoard = ({ board, onPlaceBlock, onReturnBlock }: Pr
       </header>
       <WeekSwimlanes lanes={board.lanes} onDropBlock={onPlaceBlock} />
     </section>
+    <QueueLogPanel queue={board.queue} />
   </main>
 );
