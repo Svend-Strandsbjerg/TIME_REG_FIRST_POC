@@ -2,26 +2,33 @@
 
 ## Principle
 
-Frontend implementations are adapters. Business behavior lives in domain/application layers.
+Frontend frameworks are interaction/rendering adapters. Core planning behavior is framework-neutral.
 
-## Kept portable by design
+## Portable core contract
 
-- Raw state shape: `BoardState`
-- Command API: place/move/return/reorder operations
-- Read projections: planning view + time-entry drafts
+Both React and SAPUI5/Fiori can consume the same core model:
 
-## Current React adapter
+- blocks (`state`, `extentMinutes`)
+- placements (`lane/day`, `startTime`)
+- derived read model (`endTime`, daily totals, queue projection)
 
-- Converts browser DnD events into command calls
-- Renders `WeeklyBoardView`
-- Never owns movement rules internally
+## Framework-specific responsibility
 
-## Future adapter contract
+UI layers own:
 
-Any new UI (SAPUI5/Fiori, React Native, internal frontend) only needs to:
+- drag/drop mechanics
+- resize intent detection (upward vs downward)
+- interaction affordances and visual styling
 
-1. keep a local `BoardState`
-2. call the same command functions
-3. render the same read projections
+Core/application own:
 
-No adapter should include queue dispatch logic.
+- time arithmetic
+- placement mutation
+- extent mutation
+- queue projection rules
+
+## Why this scales
+
+- `extentMinutes` remains framework-neutral
+- placement model is explicit and transportable (`day + startTime`)
+- queue projection remains deterministic and testable without UI runtime dependencies

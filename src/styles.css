@@ -26,15 +26,14 @@ body {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
-.panel-blocks,
-.lane-blocks {
+.panel-blocks {
   display: grid;
   gap: 0.75rem;
 }
 
 .week-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(180px, 1fr));
+  grid-template-columns: repeat(7, minmax(190px, 1fr));
   gap: 0.75rem;
   overflow-x: auto;
   padding-bottom: 0.5rem;
@@ -44,7 +43,6 @@ body {
   border: 1px dashed #dbe4f0;
   border-radius: 8px;
   padding: 0.5rem;
-  min-height: 220px;
   background: #f8fbff;
 }
 
@@ -62,6 +60,31 @@ body {
   color: #475569;
 }
 
+.time-lane-grid {
+  position: relative;
+  min-height: 1440px;
+}
+
+.time-slot-row {
+  height: 60px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.time-slot-row span {
+  position: sticky;
+  left: 4px;
+  background: rgba(248, 251, 255, 0.9);
+  padding: 0 4px;
+}
+
+.lane-block-placement {
+  position: absolute;
+  left: 36px;
+  right: 4px;
+}
+
 .time-block-card {
   border: 1px solid #c7d2fe;
   background: #eef2ff;
@@ -71,6 +94,7 @@ body {
   flex-direction: column;
   justify-content: space-between;
   cursor: grab;
+  box-sizing: border-box;
 }
 
 .time-block-card--uncommitted {
@@ -81,6 +105,20 @@ body {
 .time-block-card--committed {
   border-color: #f59e0b;
   background: #ffedd5;
+}
+
+.resize-actions {
+  margin-top: 0.35rem;
+  display: flex;
+  gap: 0.25rem;
+}
+
+.resize-actions button {
+  border: 1px solid #cbd5e1;
+  background: white;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  cursor: pointer;
 }
 
 .summary {

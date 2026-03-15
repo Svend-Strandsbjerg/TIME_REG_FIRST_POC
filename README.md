@@ -1,48 +1,47 @@
 # Timesheet Planning App (UI-first, core-driven)
 
-This repository contains a weekly timesheet planning app aligned with:
+This POC now provides a **time-aware daily swimlane planner** aligned with:
 
-- `BLOCK_ENGINE_FOUNDATION` (block/container/placement movement model + native block state)
-- `ASYNC_INTEGRATION_FOUNDATION` (queue item semantics and handoff direction)
-
-The current POC is a **queue-aware planning simulation** where lifecycle is represented through `Block.state` coming from foundation capability.
+- `BLOCK_ENGINE_FOUNDATION` (abstract block state + block extent)
+- `ASYNC_INTEGRATION_FOUNDATION` (queue semantics/handoff direction)
 
 ## Scope in this phase
 
 - Three-panel layout:
   - left: unplanned blocks
-  - center: weekly swimlanes
-  - right: queue/log monitor
-- Exactly one queue that always exists (`planning-queue`) and always has status `paused`
-- Queue item simulation with explicit operation semantics: `create` / `update` / `delete`
-- Block-state-driven swimlane visualization:
-  - `uncommitted` = red
-  - `committed` = orange
-- Committed placement memory and automatic restoration behavior
-- Daily total hours shown per lane header
+  - center: weekly planner with day columns modeled as a time axis
+  - right: paused queue/log monitor
+- Daily planning window: **06:00-18:00**
+- Deterministic slot model: **30-minute increments**
+- Placement model: **day + start time**
+- Extent model: **block extentMinutes drives rendered height and derived end time**
+- Resize support:
+  - downward extend => extent changes
+  - upward extend => start time and extent change
+- Daily totals shown per day (`sum(extentMinutes)`)
 
-## Block state ownership
+## Placement model
 
-`BLOCK_ENGINE_FOUNDATION` now provides abstract block state support. This POC consumes that capability and assigns app-specific meaning to values:
+A placement now carries **where** a block is scheduled:
 
-- `uncommitted`: not yet persisted to target system
-- `committed`: already persisted baseline
+- lane/day
+- start time (`HH:mm`)
 
-The framework remains abstract and does not enforce state vocabulary, transition policy, or UI styling. Color mapping is intentionally in UI only.
+Duration remains on the block via `extentMinutes`. End time is derived from `startTime + extentMinutes`.
 
-## Queue and state rules (implemented)
+## Queue behavior (time-aware)
 
-- Uncommitted block placed into a lane => queue item `create`
-- Uncommitted block returned to pool => queue item removed
-- Committed block removed from lane => queue item `delete`
-- Committed block restored after removal => returns to remembered committed day/slot and queue item removed
-- Committed block moved to another slot/day => queue item `update`
-- Queue item fields include: queue ID, item ID, block ID, day, time slot, operation, reason
+- Uncommitted block placed => queue `create` with day + actual start time
+- Uncommitted block removed => queue item removed
+- Committed block removed from baseline => queue `delete`
+- Committed block moved day/time => queue `update`
+- Committed block restored => queue item removed
 
-## Runtime requirements
+Committed baseline now tracks day + start time (and optional extent baseline metadata).
 
-- Node.js `>=20.10.0`
-- npm `>=10`
+## Collision handling in this POC
+
+Current behavior allows free placement on any deterministic slot and does **not** implement sophisticated overlap prevention yet. This is intentionally deferred as a future enhancement.
 
 ## Install and run
 
@@ -58,19 +57,9 @@ npm run test
 npm run build
 ```
 
-If package installation is blocked in your environment, runtime verification remains pending until dependencies are available.
-
 ## Architecture map
 
-- `src/core/domain`: framework-neutral entities + deterministic rules
-- `src/core/application`: use-case operations + projections (board + queue + totals)
+- `src/core/domain`: framework-neutral entities + deterministic time rules
+- `src/core/application`: command operations + read projections
 - `src/integration`: inbound adapter boundary + queue handoff placeholder
-- `src/ui` + `src/app`: thin React adapter (state-to-color mapping)
-
-## Documentation index
-
-- `ARCHITECTURE.md`
-- `docs/architecture/board-domain-model.md`
-- `docs/architecture/future-queue-integration.md`
-- `docs/architecture/ui-portability-strategy.md`
-- `docs/architecture/fiori-migration-path.md`
+- `src/ui` + `src/app`: React adapter (DnD + resize intent + rendering)

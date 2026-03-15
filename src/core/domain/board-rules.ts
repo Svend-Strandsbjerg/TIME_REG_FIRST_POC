@@ -9,34 +9,17 @@ import type {
   QueueItem,
   QueueOperation,
   TimeBlock,
-  TimeBlockId
+  TimeBlockId,
+  TimeOfDay
 } from './board-types';
-import { slotFromOrder } from './time-slot';
+import { clampToPlanningWindow, isWithinPlanningWindow, shiftTimeByMinutes, SLOT_MINUTES } from './time-slot';
 
 export const getPlacementForBlock = (state: BoardState, blockId: TimeBlockId) =>
   state.placements.find((placement) => placement.blockId === blockId);
 
 export const getBlockById = (state: BoardState, blockId: TimeBlockId) => state.blocks.find((block) => block.id === blockId);
 
-const normalizeLaneOrders = (placements: PlacedBlock[]): PlacedBlock[] => {
-  const byLane = new Map<DayLaneId, PlacedBlock[]>();
-
-  for (const placement of placements) {
-    const existing = byLane.get(placement.laneId) ?? [];
-    existing.push(placement);
-    byLane.set(placement.laneId, existing);
-  }
-
-  return Array.from(byLane.values())
-    .flatMap((lanePlacements) =>
-      lanePlacements
-        .sort((a, b) => a.order - b.order)
-        .map((placement, order) => ({ ...placement, order }))
-    )
-    .sort((a, b) => a.laneId.localeCompare(b.laneId) || a.order - b.order);
-};
-
-const buildSlot = (laneLookup: Map<DayLaneId, DayLane>, laneId: DayLaneId, order: number): PlacementSlot => {
+const buildSlot = (laneLookup: Map<DayLaneId, DayLane>, laneId: DayLaneId, startTime: TimeOfDay): PlacementSlot => {
   const lane = laneLookup.get(laneId);
   if (!lane) {
     throw new Error(`Unknown lane id: ${laneId}`);
@@ -44,7 +27,7 @@ const buildSlot = (laneLookup: Map<DayLaneId, DayLane>, laneId: DayLaneId, order
 
   return {
     dayKey: lane.dayKey,
-    timeSlot: slotFromOrder(order)
+    timeSlot: startTime
   };
 };
 
@@ -80,7 +63,7 @@ const queueItemForBlock = (state: BoardState, blockId: TimeBlockId): QueueItem |
     return buildQueueItem(
       state.queue.id,
       block,
-      buildSlot(laneLookup, placement.laneId, placement.order),
+      buildSlot(laneLookup, placement.laneId, placement.startTime),
       'create',
       'Uncommitted block is placed and pending creation in target system.'
     );
@@ -92,7 +75,7 @@ const queueItemForBlock = (state: BoardState, blockId: TimeBlockId): QueueItem |
 
   const committed = placement.committedPlacement;
 
-  if (placement.laneId === committed.laneId && placement.order === committed.order) {
+  if (placement.laneId === committed.laneId && placement.startTime === committed.startTime) {
     return undefined;
   }
 
@@ -103,7 +86,7 @@ const queueItemForBlock = (state: BoardState, blockId: TimeBlockId): QueueItem |
   return buildQueueItem(
     state.queue.id,
     block,
-    buildSlot(laneLookup, placement.laneId, placement.order),
+    buildSlot(laneLookup, placement.laneId, placement.startTime),
     'update',
     'Committed block moved away from its committed slot.'
   );
@@ -129,29 +112,27 @@ const restoreCommittedPlacementIfNeeded = (
   block: TimeBlock,
   placement: PlacedBlock,
   targetLaneId: DayLaneId,
-  laneSize: number
-): { laneId: DayLaneId; order: number } => {
+  startTime: TimeOfDay
+): { laneId: DayLaneId; startTime: TimeOfDay } => {
   if (block.state === 'committed' && placement.laneId === 'unplanned' && placement.committedPlacement) {
     return {
       laneId: placement.committedPlacement.laneId,
-      order: placement.committedPlacement.order
+      startTime: placement.committedPlacement.startTime
     };
   }
 
   return {
     laneId: targetLaneId,
-    order: laneSize
+    startTime: clampToPlanningWindow(startTime)
   };
 };
 
-export const appendPlacement = (state: BoardState, blockId: TimeBlockId, laneId: DayLaneId): BoardState => {
+export const appendPlacement = (state: BoardState, blockId: TimeBlockId, laneId: DayLaneId, startTime: TimeOfDay): BoardState => {
   const existing = getPlacementForBlock(state, blockId);
   const block = getBlockById(state, blockId);
   if (!block) {
     return state;
   }
-
-  const laneSize = state.placements.filter((placement) => placement.laneId === laneId).length;
 
   const nextPlacements = existing
     ? state.placements.map((placement) => {
@@ -159,19 +140,19 @@ export const appendPlacement = (state: BoardState, blockId: TimeBlockId, laneId:
           return placement;
         }
 
-        const target = restoreCommittedPlacementIfNeeded(block, placement, laneId, laneSize);
-        return { ...placement, laneId: target.laneId, order: target.order };
+        const target = restoreCommittedPlacementIfNeeded(block, placement, laneId, startTime);
+        return { ...placement, laneId: target.laneId, startTime: target.startTime };
       })
     : state.placements.concat({
         id: `placement-${blockId}`,
         blockId,
         laneId,
-        order: laneSize
+        startTime: clampToPlanningWindow(startTime)
       });
 
   return withQueueProjection({
     ...state,
-    placements: normalizeLaneOrders(nextPlacements)
+    placements: nextPlacements
   });
 };
 
@@ -185,24 +166,68 @@ export const removePlacement = (state: BoardState, blockId: TimeBlockId): BoardS
   const nextPlacements =
     block.state === 'committed'
       ? state.placements.map((placement) =>
-          placement.blockId === blockId ? { ...placement, laneId: 'unplanned', order: 0 } : placement
+          placement.blockId === blockId ? { ...placement, laneId: 'unplanned', startTime: '06:00' } : placement
         )
       : state.placements.filter((placement) => placement.blockId !== blockId);
 
   return withQueueProjection({
     ...state,
-    placements: normalizeLaneOrders(nextPlacements)
+    placements: nextPlacements
+  });
+};
+
+type ResizeInstruction = {
+  direction: 'upward' | 'downward';
+  minutes: number;
+};
+
+export const resizePlacedBlock = (state: BoardState, blockId: TimeBlockId, instruction: ResizeInstruction): BoardState => {
+  const block = getBlockById(state, blockId);
+  const placement = getPlacementForBlock(state, blockId);
+
+  if (!block || !placement) {
+    return state;
+  }
+
+  const delta = Math.max(SLOT_MINUTES, instruction.minutes);
+  const nextExtent = block.extentMinutes + delta;
+  const nextStart = instruction.direction === 'upward' ? shiftTimeByMinutes(placement.startTime, -delta) : placement.startTime;
+
+  if (!isWithinPlanningWindow(nextStart, nextExtent)) {
+    return state;
+  }
+
+  return withQueueProjection({
+    ...state,
+    blocks: state.blocks.map((candidate) =>
+      candidate.id === block.id
+        ? {
+            ...candidate,
+            extentMinutes: nextExtent
+          }
+        : candidate
+    ),
+    placements: state.placements.map((candidate) =>
+      candidate.blockId === blockId
+        ? {
+            ...candidate,
+            startTime: nextStart
+          }
+        : candidate
+    )
   });
 };
 
 export const createCommittedPlacement = (
   laneId: DayLaneId,
-  order: number,
+  startTime: TimeOfDay,
+  extentMinutes: number | undefined,
   laneById: Map<DayLaneId, DayLane>
-): { laneId: DayLaneId; order: number; slot: { dayKey: DayKey; timeSlot: string } } => ({
+): { laneId: DayLaneId; startTime: TimeOfDay; slot: { dayKey: DayKey; timeSlot: string }; extentMinutes?: number } => ({
   laneId,
-  order,
-  slot: buildSlot(laneById, laneId, order)
+  startTime,
+  slot: buildSlot(laneById, laneId, startTime),
+  extentMinutes
 });
 
 export const withQueueProjectionApplied = withQueueProjection;

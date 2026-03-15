@@ -8,7 +8,7 @@ export const createTimeBlockFromActivityInstance = (
 ): TimeBlock => ({
   id: `block-${activity.id}-${instance.id}`,
   title: activity.title,
-  durationMinutes: instance.suggestedDurationMinutes,
+  extentMinutes: instance.suggestedDurationMinutes,
   source,
   state: 'uncommitted',
   metadata: {

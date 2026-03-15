@@ -1,18 +1,20 @@
-import { durationToSize } from '../domain/time-block';
-import { slotFromOrder } from '../domain/time-slot';
-import type { BlockState, BoardState, DayLane, QueueItem, TimeBlock, TimeEntryDraft } from '../domain/board-types';
+import { deriveEndTime, generatePlanningSlots, toMinutesOfDay } from '../domain/time-slot';
+import type { BlockState, BoardState, DayLane, QueueItem, TimeBlock, TimeEntryDraft, TimeOfDay } from '../domain/board-types';
 
 export type TimeBlockCardView = {
   block: TimeBlock;
-  size: ReturnType<typeof durationToSize>;
   state: BlockState;
-  timeSlot?: string;
+  startTime?: TimeOfDay;
+  endTime?: TimeOfDay;
+  topOffsetMinutes?: number;
+  heightMinutes?: number;
 };
 
 export type DayLaneView = {
   lane: DayLane;
   placedBlocks: TimeBlockCardView[];
   totalHours: number;
+  slots: TimeOfDay[];
 };
 
 export type WeeklyBoardView = {
@@ -30,19 +32,20 @@ export type WeeklyBoardView = {
 };
 
 export const buildPlanningView = (state: BoardState): WeeklyBoardView => {
+  const slots = generatePlanningSlots();
+  const planningStartMinutes = toMinutesOfDay(slots[0] ?? '06:00');
+
   const placedBlockIds = new Set(state.placements.filter((placement) => placement.laneId !== 'unplanned').map((placement) => placement.blockId));
   const blockLookup = new Map(state.blocks.map((block) => [block.id, block]));
 
-  const availableBlocks = state.blocks
-    .filter((block) => !placedBlockIds.has(block.id))
-    .map((block) => ({ block, size: durationToSize(block.durationMinutes), state: block.state }));
+  const availableBlocks = state.blocks.filter((block) => !placedBlockIds.has(block.id)).map((block) => ({ block, state: block.state }));
 
   const lanes = [...state.lanes]
     .sort((a, b) => a.order - b.order)
     .map((lane) => {
       const placements = state.placements
         .filter((placement) => placement.laneId === lane.id)
-        .sort((a, b) => a.order - b.order);
+        .sort((a, b) => a.startTime.localeCompare(b.startTime));
 
       const placedBlocks: TimeBlockCardView[] = [];
 
@@ -54,18 +57,21 @@ export const buildPlanningView = (state: BoardState): WeeklyBoardView => {
 
         placedBlocks.push({
           block,
-          size: durationToSize(block.durationMinutes),
           state: block.state,
-          timeSlot: slotFromOrder(placement.order)
+          startTime: placement.startTime,
+          endTime: deriveEndTime(placement.startTime, block.extentMinutes),
+          topOffsetMinutes: toMinutesOfDay(placement.startTime) - planningStartMinutes,
+          heightMinutes: block.extentMinutes
         });
       }
 
-      const totalHours = placedBlocks.reduce((sum, card) => sum + card.block.durationMinutes / 60, 0);
+      const totalHours = placedBlocks.reduce((sum, card) => sum + card.block.extentMinutes / 60, 0);
 
       return {
         lane,
         placedBlocks,
-        totalHours: Number(totalHours.toFixed(2))
+        totalHours: Number(totalHours.toFixed(2)),
+        slots
       };
     });
 
@@ -87,7 +93,7 @@ export const convertPlacedBlockToTimeEntryDraft = (state: BoardState): TimeEntry
   return state.placements
     .filter((placement) => placement.laneId !== 'unplanned')
     .slice()
-    .sort((a, b) => a.laneId.localeCompare(b.laneId) || a.order - b.order)
+    .sort((a, b) => a.laneId.localeCompare(b.laneId) || a.startTime.localeCompare(b.startTime))
     .map((placement, index) => {
       const lane = laneLookup.get(placement.laneId);
       const block = blockLookup.get(placement.blockId);
@@ -101,8 +107,9 @@ export const convertPlacedBlockToTimeEntryDraft = (state: BoardState): TimeEntry
         blockId: block.id,
         laneId: lane.id,
         dayKey: lane.dayKey,
+        startTime: placement.startTime,
         title: block.title,
-        durationMinutes: block.durationMinutes
+        extentMinutes: block.extentMinutes
       };
     })
     .filter((draft): draft is TimeEntryDraft => Boolean(draft));
