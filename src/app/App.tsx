@@ -49,7 +49,7 @@ export const App = () => {
 
       console.assert(startupView.importedCandidates.length > 0, '[startup-demo] expected imported candidates at startup');
       console.assert(startupView.templateCandidates.length > 0, '[startup-demo] expected PSP templates at startup');
-      console.assert(startupView.changedCommittedCandidates.length > 0, '[startup-demo] expected changed committed entries at startup');
+      console.assert(startupView.changedCommittedCandidates.length === 0, '[startup-demo] expected no changed committed entries at startup');
 
       setState(startupState);
     });

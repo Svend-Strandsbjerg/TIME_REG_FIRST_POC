@@ -73,21 +73,22 @@ export const AvailableBlocksPanel = ({
         </div>
       </div>
 
-      <div className="candidate-section">
-        <h3>Changed committed entries</h3>
-        <p className="drop-hint">Committed entries removed from baseline remain here as red change candidates.</p>
-        {changedCommittedCandidates.length === 0 ? <p>No changed committed entries.</p> : null}
-        <div className="panel-blocks">
-          {changedCommittedCandidates.map((card) => (
-            <TimeBlockCard
-              key={card.block.id}
-              card={card}
-              dragOrigin="candidate-changed-committed"
-              visualContext="candidate"
-            />
-          ))}
+      {changedCommittedCandidates.length > 0 ? (
+        <div className="candidate-section">
+          <h3>Changed committed entries</h3>
+          <p className="drop-hint">Committed entries removed from baseline remain here as red change candidates.</p>
+          <div className="panel-blocks">
+            {changedCommittedCandidates.map((card) => (
+              <TimeBlockCard
+                key={card.block.id}
+                card={card}
+                dragOrigin="candidate-changed-committed"
+                visualContext="candidate"
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      ) : null}
     </section>
   );
 };
