@@ -5,7 +5,12 @@ import { TimeBlockCard } from './TimeBlockCard';
 
 type Props = {
   lane: DayLaneView;
-  onDropBlock: (blockId: string, laneId: string, startTime: string) => void;
+  onDropBlock: (
+    blockId: string,
+    laneId: string,
+    startTime: string,
+    dragOrigin?: 'lane' | 'candidate-imported' | 'candidate-template' | 'candidate-changed-committed'
+  ) => void;
   onResizeTop: (blockId: string, slotDelta: number) => void;
   onResizeBottom: (blockId: string, slotDelta: number) => void;
   onOpenDescriptionEditor: (blockId: string) => void;
@@ -46,7 +51,7 @@ export const DayLaneColumn = ({ lane, onDropBlock, onResizeBottom, onResizeTop, 
         }
 
         const slot = resolveDropSlot(event, lane.slots);
-        onDropBlock(payload.blockId, lane.lane.id, slot);
+        onDropBlock(payload.blockId, lane.lane.id, slot, payload.dragOrigin);
       }}
     >
       {lane.slots.map((slot) => (
@@ -73,6 +78,7 @@ export const DayLaneColumn = ({ lane, onDropBlock, onResizeBottom, onResizeTop, 
             <TimeBlockCard
               card={card}
               fromLaneId={lane.lane.id}
+              dragOrigin="lane"
               onResizeBottom={onResizeBottom}
               onResizeTop={onResizeTop}
               onDoubleClick={onOpenDescriptionEditor}

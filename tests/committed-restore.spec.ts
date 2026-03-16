@@ -40,4 +40,20 @@ describe('committed restore flow', () => {
         .map((card) => card.visualState)
     ).toEqual(['committed']);
   });
+
+  it('snaps changed committed candidate drops to baseline start time when dropped on baseline lane', () => {
+    const initial = createBoardWeek([committedBlock]);
+    const removed = returnBlockToPool(initial, committedBlock.id);
+
+    const restoredFromCandidate = placeBlockOnLane(removed, committedBlock.id, 'lane-tuesday', '08:00', {
+      dragOrigin: 'candidate-changed-committed'
+    });
+
+    const restoredPlacement = restoredFromCandidate.placements.find((placement) => placement.blockId === committedBlock.id);
+    const restoredView = buildPlanningView(restoredFromCandidate);
+
+    expect(restoredPlacement?.laneId).toBe('lane-tuesday');
+    expect(restoredPlacement?.startTime).toBe('10:00');
+    expect(restoredView.changedCommittedCandidates.map((card) => card.block.id)).not.toContain(committedBlock.id);
+  });
 });

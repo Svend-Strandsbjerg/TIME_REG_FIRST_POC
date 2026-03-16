@@ -51,7 +51,13 @@ export const AvailableBlocksPanel = ({
         {importedCandidates.length === 0 ? <p>No imported candidates.</p> : null}
         <div className="panel-blocks">
           {importedCandidates.map((card) => (
-            <TimeBlockCard key={card.block.id} card={card} onDoubleClick={onAutoPlaceImported} visualContext="candidate" />
+            <TimeBlockCard
+              key={card.block.id}
+              card={card}
+              onDoubleClick={onAutoPlaceImported}
+              dragOrigin="candidate-imported"
+              visualContext="candidate"
+            />
           ))}
         </div>
       </div>
@@ -62,7 +68,7 @@ export const AvailableBlocksPanel = ({
         {templateCandidates.length === 0 ? <p>No template candidates.</p> : null}
         <div className="panel-blocks">
           {templateCandidates.map((card) => (
-            <TimeBlockCard key={card.block.id} card={card} visualContext="candidate" />
+            <TimeBlockCard key={card.block.id} card={card} dragOrigin="candidate-template" visualContext="candidate" />
           ))}
         </div>
       </div>
@@ -73,7 +79,12 @@ export const AvailableBlocksPanel = ({
         {changedCommittedCandidates.length === 0 ? <p>No changed committed entries.</p> : null}
         <div className="panel-blocks">
           {changedCommittedCandidates.map((card) => (
-            <TimeBlockCard key={card.block.id} card={card} visualContext="candidate" />
+            <TimeBlockCard
+              key={card.block.id}
+              card={card}
+              dragOrigin="candidate-changed-committed"
+              visualContext="candidate"
+            />
           ))}
         </div>
       </div>

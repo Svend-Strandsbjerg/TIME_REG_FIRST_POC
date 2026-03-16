@@ -3,7 +3,12 @@ import { DayLaneColumn } from './DayLaneColumn';
 
 type Props = {
   lanes: DayLaneView[];
-  onDropBlock: (blockId: string, laneId: string, startTime: string) => void;
+  onDropBlock: (
+    blockId: string,
+    laneId: string,
+    startTime: string,
+    dragOrigin?: 'lane' | 'candidate-imported' | 'candidate-template' | 'candidate-changed-committed'
+  ) => void;
   onResizeTop: (blockId: string, slotDelta: number) => void;
   onResizeBottom: (blockId: string, slotDelta: number) => void;
   onOpenDescriptionEditor: (blockId: string) => void;

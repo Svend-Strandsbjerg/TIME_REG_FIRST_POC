@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildPlanningView } from '../../src/core/application/board-queries';
-import { createBoardWeek } from '../../src/core/application/board-service';
+import { createBoardWeek, placeBlockOnLane } from '../../src/core/application/board-service';
 import { MockBlockSource } from '../../src/integration/inbound/mock-block-source';
 import { applySeededDemoState, withSeededStartupBlocks } from '../../src/integration/inbound/seeded-demo-state';
 
@@ -65,5 +65,30 @@ describe('seeded demo startup state', () => {
     expect(operationsByBlock.get('block-activity-8-instance-8')).toBe('update');
     expect(operationsByBlock.get('block-activity-9-instance-9')).toBe('delete');
     expect(operationsByBlock.get('block-activity-10-instance-10')).toBe('update');
+  });
+
+  it('restores seeded changed committed ids from candidate drag and removes them from changed candidates immediately', async () => {
+    const blocks = await new MockBlockSource().listTimeRegistrationCandidates();
+    const seeded = applySeededDemoState(createBoardWeek(withSeededStartupBlocks(blocks)));
+
+    const movedRestore = placeBlockOnLane(seeded, 'demo-committed-move', 'lane-monday', '11:30', {
+      dragOrigin: 'candidate-changed-committed'
+    });
+    const removedRestore = placeBlockOnLane(movedRestore, 'demo-committed-remove', 'lane-tuesday', '07:00', {
+      dragOrigin: 'candidate-changed-committed'
+    });
+    const restoredView = buildPlanningView(removedRestore);
+
+    const movedPlacement = removedRestore.placements.find((placement) => placement.blockId === 'demo-committed-move');
+    const removedPlacement = removedRestore.placements.find((placement) => placement.blockId === 'demo-committed-remove');
+
+    expect(movedPlacement?.laneId).toBe('lane-monday');
+    expect(movedPlacement?.startTime).toBe('08:30');
+    expect(removedPlacement?.laneId).toBe('lane-tuesday');
+    expect(removedPlacement?.startTime).toBe('10:00');
+
+    const changedIds = restoredView.changedCommittedCandidates.map((card) => card.block.id);
+    expect(changedIds).not.toContain('demo-committed-move');
+    expect(changedIds).not.toContain('demo-committed-remove');
   });
 });

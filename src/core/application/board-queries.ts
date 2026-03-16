@@ -2,6 +2,8 @@ import { formatInterval } from '../domain/board-rules';
 import { deriveEndTime, generatePlanningSlots, toMinutesOfDay } from '../domain/time-slot';
 import type { BlockState, BoardState, DayLane, QueueItem, TimeBlock, TimeEntryDraft, TimeOfDay } from '../domain/board-types';
 
+const DEBUG_SEEDED_CHANGED_COMMITTED_IDS = new Set(['demo-committed-move', 'demo-committed-remove', 'demo-committed-reschedule']);
+
 export type TimeBlockCardView = {
   block: TimeBlock;
   state: BlockState;
@@ -133,6 +135,25 @@ const isCommittedPlacementChangedFromBaseline = (state: BoardState, blockId: str
   return !isCommittedPlacementMatchingBaseline(state, blockId);
 };
 
+const describeCommittedCandidateStatus = (state: BoardState, blockId: string) => {
+  const block = state.blocks.find((candidate) => candidate.id === blockId);
+  const placement = state.placements.find((candidate) => candidate.blockId === blockId);
+  const baseline = placement?.committedPlacement;
+  const isMatchingBaseline = isCommittedPlacementMatchingBaseline(state, blockId);
+  const isChangedFromBaseline = isCommittedPlacementChangedFromBaseline(state, blockId);
+
+  return {
+    blockId,
+    state: block?.state,
+    currentPlacement: placement ? { laneId: placement.laneId, startTime: placement.startTime } : null,
+    baselinePlacement: baseline ? { laneId: baseline.laneId, startTime: baseline.startTime, extentMinutes: baseline.extentMinutes } : null,
+    extentMinutes: block?.extentMinutes,
+    isMatchingBaseline,
+    isChangedFromBaseline,
+    includedInChangedCommittedCandidates: isChangedFromBaseline
+  };
+};
+
 const toCandidateCard = (block: TimeBlock): TimeBlockCardView => {
   const importedStartTime = typeof block.metadata?.importedStartTime === 'string' ? block.metadata.importedStartTime : undefined;
   const importedEndTime = typeof block.metadata?.importedEndTime === 'string' ? block.metadata.importedEndTime : undefined;
@@ -181,6 +202,14 @@ export const buildPlanningView = (state: BoardState): WeeklyBoardView => {
       ...toCandidateCard(block),
       visualState: 'uncommitted' as const
     }));
+
+  const seededDebugDetails = state.blocks
+    .filter((block) => DEBUG_SEEDED_CHANGED_COMMITTED_IDS.has(block.id))
+    .map((block) => describeCommittedCandidateStatus(state, block.id));
+
+  if (seededDebugDetails.length > 0) {
+    console.info('[restore-debug][candidate-derivation]', seededDebugDetails);
+  }
 
   console.info('[buildPlanningView] derived candidate ids', {
     importedCount: importedCandidates.length,
