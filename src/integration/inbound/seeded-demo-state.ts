@@ -111,7 +111,17 @@ export const withSeededStartupBlocks = (blocks: TimeBlock[]): TimeBlock[] => {
 };
 
 export const applySeededDemoState = (state: BoardState): BoardState => {
-  const movedMonday = placeBlockOnLane(state, 'demo-committed-move', 'lane-monday', '10:00');
-  const removedTuesday = returnBlockToPool(movedMonday, 'demo-committed-remove');
-  return placeBlockOnLane(removedTuesday, 'demo-committed-reschedule', 'lane-friday', '15:30');
+  const moveCandidateId = state.blocks.some((block) => block.id === 'demo-committed-move')
+    ? 'demo-committed-move'
+    : 'block-activity-8-instance-8';
+  const removeCandidateId = state.blocks.some((block) => block.id === 'demo-committed-remove')
+    ? 'demo-committed-remove'
+    : 'block-activity-9-instance-9';
+  const rescheduleCandidateId = state.blocks.some((block) => block.id === 'demo-committed-reschedule')
+    ? 'demo-committed-reschedule'
+    : 'block-activity-10-instance-10';
+
+  const movedMonday = placeBlockOnLane(state, moveCandidateId, 'lane-monday', '10:00');
+  const removedTuesday = returnBlockToPool(movedMonday, removeCandidateId);
+  return placeBlockOnLane(removedTuesday, rescheduleCandidateId, 'lane-friday', '15:30');
 };

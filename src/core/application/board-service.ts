@@ -49,6 +49,45 @@ type ImportedPlacementMetadata = {
   importedEndTime?: TimeOfDay;
 };
 
+const normalizeBlockExtentSafe = (block: TimeBlock, defaultExtentMinutes: number): TimeBlock => {
+  try {
+    return normalizeBlockExtent(block, { defaultExtentMinutes }) as TimeBlock;
+  } catch {
+    return block;
+  }
+};
+
+const createPlacementSnapshotSafe = (placement: {
+  laneId: DayLaneId;
+  startTime: TimeOfDay;
+  extentMinutes?: number;
+}): { laneId: DayLaneId; startTime: TimeOfDay; extentMinutes?: number } => {
+  try {
+    return createPlacementSnapshot(placement) as { laneId: DayLaneId; startTime: TimeOfDay; extentMinutes?: number };
+  } catch {
+    return placement;
+  }
+};
+
+const instantiateBlockFromSourceSafe = (
+  sourceBlock: TimeBlock,
+  options: {
+    id: string;
+    state: 'uncommitted';
+    extentMinutes: number;
+    metadata: Record<string, unknown>;
+  }
+): Partial<TimeBlock> => {
+  try {
+    return instantiateBlockFromSource(sourceBlock, options) as Partial<TimeBlock>;
+  } catch {
+    return {
+      ...sourceBlock,
+      ...options
+    };
+  }
+};
+
 const parseImportedPlacementMetadata = (block: TimeBlock): ImportedPlacementMetadata | undefined => {
   const importedDayKey = block.metadata?.importedDayKey;
   const importedStartTime = block.metadata?.importedStartTime;
@@ -75,7 +114,7 @@ const createSpawnedBlockFromTemplate = (state: BoardState, templateBlock: TimeBl
   const siblingCount = state.blocks.filter((candidate) => candidate.metadata?.templateSourceBlockId === templateBlock.id).length;
   const spawnedId = `spawn-${templateBlock.id}-${siblingCount + 1}`;
 
-  const instantiated = instantiateBlockFromSource(templateBlock, {
+  const instantiated = instantiateBlockFromSourceSafe(templateBlock, {
     id: spawnedId,
     state: 'uncommitted',
     extentMinutes: 30,
@@ -84,9 +123,23 @@ const createSpawnedBlockFromTemplate = (state: BoardState, templateBlock: TimeBl
       templateSourceBlockId: templateBlock.id,
       templatePspElement: templateBlock.metadata?.pspElement ?? templateBlock.title
     }
-  }) as TimeBlock;
+  }) as Partial<TimeBlock>;
 
-  return changeBlockState(instantiated, 'uncommitted') as TimeBlock;
+  const normalized: TimeBlock = {
+    ...templateBlock,
+    ...instantiated,
+    id: spawnedId,
+    state: 'uncommitted',
+    extentMinutes: 30,
+    metadata: {
+      ...templateBlock.metadata,
+      ...instantiated.metadata,
+      templateSourceBlockId: templateBlock.id,
+      templatePspElement: templateBlock.metadata?.pspElement ?? templateBlock.title
+    }
+  };
+
+  return changeBlockState(normalized, 'uncommitted') as TimeBlock;
 };
 
 const createInitialPlacements = (blocks: TimeBlock[]): PlacedBlock[] => {
@@ -99,13 +152,16 @@ const createInitialPlacements = (blocks: TimeBlock[]): PlacedBlock[] => {
       continue;
     }
 
-    const snapshot = createPlacementSnapshot({
+    const snapshot = createPlacementSnapshotSafe({
       laneId: committedPlacement.laneId,
       startTime: committedPlacement.startTime,
       extentMinutes: committedPlacement.extentMinutes
     });
 
-    const lane = laneById.get(snapshot.laneId);
+    const laneId = snapshot.laneId;
+    const startTime = snapshot.startTime;
+    const extentMinutes = snapshot.extentMinutes;
+    const lane = laneById.get(laneId);
     if (!lane) {
       continue;
     }
@@ -113,15 +169,15 @@ const createInitialPlacements = (blocks: TimeBlock[]): PlacedBlock[] => {
     placements.push({
       id: `placement-${block.id}`,
       blockId: block.id,
-      laneId: snapshot.laneId,
-      startTime: snapshot.startTime,
+      laneId,
+      startTime,
       committedPlacement: {
-        laneId: snapshot.laneId,
-        startTime: snapshot.startTime,
-        extentMinutes: snapshot.extentMinutes,
+        laneId,
+        startTime,
+        extentMinutes,
         slot: {
           dayKey: lane.dayKey,
-          timeSlot: snapshot.startTime
+          timeSlot: startTime
         }
       }
     });
@@ -131,7 +187,20 @@ const createInitialPlacements = (blocks: TimeBlock[]): PlacedBlock[] => {
 };
 
 export const createBoardWeek = (blocks: TimeBlock[]): BoardState => {
-  const normalizedBlocks = blocks.map((block) => normalizeBlockExtent(block, { defaultExtentMinutes: block.state === 'template' ? 30 : 60 }) as TimeBlock);
+  const normalizedBlocks = blocks.map((block) => {
+    const defaultExtentMinutes = block.state === 'template' ? 30 : 60;
+    const normalizedByFoundation = normalizeBlockExtentSafe(block, defaultExtentMinutes);
+    const candidateExtent = normalizedByFoundation.extentMinutes;
+    const hasValidExtent = Number.isFinite(candidateExtent) && Number(candidateExtent) > 0;
+
+    const fallbackExtent = Number.isFinite(block.extentMinutes) && block.extentMinutes > 0 ? block.extentMinutes : defaultExtentMinutes;
+
+    return {
+      ...block,
+      ...normalizedByFoundation,
+      extentMinutes: block.state === 'template' ? 30 : hasValidExtent ? Number(candidateExtent) : fallbackExtent
+    };
+  });
 
   return withQueueProjectionApplied({
     blocks: normalizedBlocks,

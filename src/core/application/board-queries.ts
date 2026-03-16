@@ -124,6 +124,14 @@ const toCandidateCard = (block: TimeBlock): TimeBlockCardView => {
 
 export const buildPlanningView = (state: BoardState): WeeklyBoardView => {
   const slots = generatePlanningSlots();
+
+  console.info('[buildPlanningView] state snapshot', {
+    blockCount: state.blocks.length,
+    placementCount: state.placements.length,
+    seededBlocks: state.blocks
+      .filter((block) => block.id.startsWith('demo-'))
+      .map((block) => ({ id: block.id, state: block.state, metadata: block.metadata }))
+  });
   const planningStartMinutes = toMinutesOfDay(slots[0] ?? '06:00');
 
   const placedBlockIds = new Set(state.placements.filter((placement) => placement.laneId !== 'unplanned').map((placement) => placement.blockId));
@@ -145,6 +153,15 @@ export const buildPlanningView = (state: BoardState): WeeklyBoardView => {
       ...toCandidateCard(block),
       visualState: 'uncommitted' as const
     }));
+
+  console.info('[buildPlanningView] derived candidate ids', {
+    importedCount: importedCandidates.length,
+    importedIds: importedCandidates.map((card) => card.block.id),
+    templateCount: templateCandidates.length,
+    templateIds: templateCandidates.map((card) => card.block.id),
+    changedCommittedCount: changedCommittedCandidates.length,
+    changedCommittedIds: changedCommittedCandidates.map((card) => card.block.id)
+  });
 
   const lanes = [...state.lanes]
     .sort((a, b) => a.order - b.order)
