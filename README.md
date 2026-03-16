@@ -75,7 +75,7 @@ The mock inbound source now seeds representative demo data so the board is immed
   - Baseline Monday 08:30-09:30 now moved
   - Baseline Tuesday 10:00-11:00 now removed to unplanned
   - Baseline Thursday 14:00-15:30 now moved
-  - Seeded via `committedPlacement` (baseline) + `currentPlacement` (current state) metadata so queue update/delete semantics and baseline restoration are immediately testable.
+  - Seeded as committed-baseline blocks (`committedPlacement`) and then intentionally moved/removed during startup initialization using normal board commands, so queue update/delete semantics and baseline restoration are immediately testable.
 
 ## Foundation runtime ownership in this repo
 

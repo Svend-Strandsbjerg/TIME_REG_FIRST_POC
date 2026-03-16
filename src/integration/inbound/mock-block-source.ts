@@ -146,10 +146,6 @@ const createMockBlocks = (): TimeBlock[] => {
             laneId: 'lane-monday',
             startTime: '08:30',
             extentMinutes: 60
-          },
-          currentPlacement: {
-            laneId: 'lane-monday',
-            startTime: '10:00'
           }
         }
       };
@@ -165,10 +161,6 @@ const createMockBlocks = (): TimeBlock[] => {
             laneId: 'lane-tuesday',
             startTime: '10:00',
             extentMinutes: 60
-          },
-          currentPlacement: {
-            laneId: 'unplanned',
-            startTime: '06:00'
           }
         }
       };
@@ -184,10 +176,6 @@ const createMockBlocks = (): TimeBlock[] => {
             laneId: 'lane-thursday',
             startTime: '14:00',
             extentMinutes: 90
-          },
-          currentPlacement: {
-            laneId: 'lane-friday',
-            startTime: '15:30'
           }
         }
       };

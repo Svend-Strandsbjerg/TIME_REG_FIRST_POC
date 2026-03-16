@@ -22,11 +22,6 @@ type CommittedMetadata = {
   extentMinutes?: number;
 };
 
-type CurrentPlacementMetadata = {
-  laneId: DayLaneId;
-  startTime: TimeOfDay;
-};
-
 const parseCommittedMetadata = (block: TimeBlock): CommittedMetadata | undefined => {
   const candidate = block.metadata?.committedPlacement;
   if (!candidate || typeof candidate !== 'object') {
@@ -46,22 +41,6 @@ const parseCommittedMetadata = (block: TimeBlock): CommittedMetadata | undefined
   }
 
   return { laneId, startTime: clampToPlanningWindow(startTime), extentMinutes };
-};
-
-const parseCurrentPlacementMetadata = (block: TimeBlock): CurrentPlacementMetadata | undefined => {
-  const candidate = block.metadata?.currentPlacement;
-  if (!candidate || typeof candidate !== 'object') {
-    return undefined;
-  }
-
-  const laneId = Reflect.get(candidate, 'laneId');
-  const startTime = Reflect.get(candidate, 'startTime');
-
-  if (typeof laneId !== 'string' || typeof startTime !== 'string') {
-    return undefined;
-  }
-
-  return { laneId, startTime: clampToPlanningWindow(startTime) };
 };
 
 type ImportedPlacementMetadata = {
@@ -120,14 +99,6 @@ const createInitialPlacements = (blocks: TimeBlock[]): PlacedBlock[] => {
       continue;
     }
 
-    const currentPlacement = parseCurrentPlacementMetadata(block);
-    const targetLaneId = currentPlacement?.laneId ?? committedPlacement.laneId;
-    const targetStartTime = currentPlacement?.startTime ?? committedPlacement.startTime;
-
-    if (targetLaneId !== 'unplanned' && !laneById.has(targetLaneId)) {
-      continue;
-    }
-
     const snapshot = createPlacementSnapshot({
       laneId: committedPlacement.laneId,
       startTime: committedPlacement.startTime,
@@ -142,8 +113,8 @@ const createInitialPlacements = (blocks: TimeBlock[]): PlacedBlock[] => {
     placements.push({
       id: `placement-${block.id}`,
       blockId: block.id,
-      laneId: targetLaneId,
-      startTime: targetStartTime,
+      laneId: snapshot.laneId,
+      startTime: snapshot.startTime,
       committedPlacement: {
         laneId: snapshot.laneId,
         startTime: snapshot.startTime,
