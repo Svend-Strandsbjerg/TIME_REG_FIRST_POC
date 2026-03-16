@@ -12,7 +12,7 @@ import {
 import type { BoardState } from '../core/domain/board-types';
 import { toQueueReadyEntries } from '../integration/async/queue-handoff';
 import { MockBlockSource } from '../integration/inbound/mock-block-source';
-import { applySeededDemoState } from '../integration/inbound/seeded-demo-state';
+import { applySeededDemoState, withSeededStartupBlocks } from '../integration/inbound/seeded-demo-state';
 import { TimeRegistrationBoard } from '../ui/components/TimeRegistrationBoard';
 import { DescriptionModal } from '../ui/components/DescriptionModal';
 
@@ -27,7 +27,20 @@ export const App = () => {
   useEffect(() => {
     const source = new MockBlockSource();
     source.listTimeRegistrationCandidates().then((blocks) => {
-      setState(applySeededDemoState(createBoardWeek(blocks)));
+      const startupState = applySeededDemoState(createBoardWeek(withSeededStartupBlocks(blocks)));
+      const startupView = buildPlanningView(startupState);
+
+      console.info('[startup-demo] candidate counts', {
+        imported: startupView.importedCandidates.length,
+        templates: startupView.templateCandidates.length,
+        changedCommitted: startupView.changedCommittedCandidates.length
+      });
+
+      console.assert(startupView.importedCandidates.length > 0, '[startup-demo] expected imported candidates at startup');
+      console.assert(startupView.templateCandidates.length > 0, '[startup-demo] expected PSP templates at startup');
+      console.assert(startupView.changedCommittedCandidates.length > 0, '[startup-demo] expected changed committed entries at startup');
+
+      setState(startupState);
     });
   }, []);
 
