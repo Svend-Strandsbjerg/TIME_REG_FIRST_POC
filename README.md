@@ -45,6 +45,7 @@ Duration remains on the block via `extentMinutes`. End time is derived from `sta
 - Committed block removed from baseline => queue `delete`
 - Committed block moved day/time => queue `update`
 - Queue/log panel shows `queue ID`, `item ID`, `day`, and full interval (derived from placement start + extent)
+- Queue/log feed is scrollable and renders newest queue entries first
 - Committed block restored => queue item removed
 
 Committed baseline now tracks day + start time (and optional extent baseline metadata).
@@ -53,9 +54,17 @@ Committed baseline now tracks day + start time (and optional extent baseline met
 
 - Multiple blocks are allowed at the same time in the same day lane.
 - Overlapping intervals are grouped deterministically and rendered side-by-side (split width by concurrent count).
+- Side-by-side left/right ordering is stable by block identity and does not swap when one block is resized.
 - This is a lightweight calendar-style packing strategy intended for predictable visual clarity.
 
 
+
+
+## Weekend visibility toggle
+
+- Top-level **Hide weekends** toggle filters Saturday/Sunday columns in the board view only.
+- Weekend placements are preserved in state (no deletion or mutation when hidden).
+- If hidden weekends still contain non-committed/imported blocks, the board shows a warning indicator.
 
 ## Seeded demo data (auto-loaded on startup)
 

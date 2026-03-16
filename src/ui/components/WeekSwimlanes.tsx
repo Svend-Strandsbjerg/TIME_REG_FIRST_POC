@@ -10,7 +10,7 @@ type Props = {
 };
 
 export const WeekSwimlanes = ({ lanes, onDropBlock, onResizeBottom, onResizeTop, onOpenDescriptionEditor }: Props) => (
-  <section className="week-grid">
+  <section className="week-grid" style={{ gridTemplateColumns: `repeat(${Math.max(lanes.length, 1)}, minmax(190px, 1fr))` }}>
     {lanes.map((lane) => (
       <DayLaneColumn
         key={lane.lane.id}
