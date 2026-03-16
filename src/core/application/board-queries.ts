@@ -94,6 +94,17 @@ const isCommittedPlacementMatchingBaseline = (state: BoardState, blockId: string
   return baseline.extentMinutes === undefined || baseline.extentMinutes === block.extentMinutes;
 };
 
+const isCommittedPlacementChangedFromBaseline = (state: BoardState, blockId: string): boolean => {
+  const block = state.blocks.find((candidate) => candidate.id === blockId);
+  const placement = state.placements.find((candidate) => candidate.blockId === blockId);
+
+  if (!block || block.state !== 'committed' || !placement?.committedPlacement) {
+    return false;
+  }
+
+  return !isCommittedPlacementMatchingBaseline(state, blockId);
+};
+
 const toCandidateCard = (block: TimeBlock): TimeBlockCardView => {
   const importedStartTime = typeof block.metadata?.importedStartTime === 'string' ? block.metadata.importedStartTime : undefined;
   const importedEndTime = typeof block.metadata?.importedEndTime === 'string' ? block.metadata.importedEndTime : undefined;
@@ -127,7 +138,7 @@ export const buildPlanningView = (state: BoardState): WeeklyBoardView => {
     .map((block) => toCandidateCard(block));
 
   const changedCommittedCandidates = state.placements
-    .filter((placement) => placement.laneId === 'unplanned')
+    .filter((placement) => isCommittedPlacementChangedFromBaseline(state, placement.blockId))
     .map((placement) => blockLookup.get(placement.blockId))
     .filter((block): block is TimeBlock => block !== undefined && block.state === 'committed')
     .map((block) => ({
