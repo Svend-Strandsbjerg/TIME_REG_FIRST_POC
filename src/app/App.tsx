@@ -12,6 +12,7 @@ import {
 import type { BoardState } from '../core/domain/board-types';
 import { toQueueReadyEntries } from '../integration/async/queue-handoff';
 import { MockBlockSource } from '../integration/inbound/mock-block-source';
+import { applySeededDemoState } from '../integration/inbound/seeded-demo-state';
 import { TimeRegistrationBoard } from '../ui/components/TimeRegistrationBoard';
 import { DescriptionModal } from '../ui/components/DescriptionModal';
 
@@ -26,7 +27,7 @@ export const App = () => {
   useEffect(() => {
     const source = new MockBlockSource();
     source.listTimeRegistrationCandidates().then((blocks) => {
-      setState(createBoardWeek(blocks));
+      setState(applySeededDemoState(createBoardWeek(blocks)));
     });
   }, []);
 
