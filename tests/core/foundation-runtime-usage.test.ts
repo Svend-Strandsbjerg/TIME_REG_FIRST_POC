@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('block_engine_foundation', () => ({
+vi.mock('@strandsbjerg/block-engine-foundation', () => ({
   normalizeBlockExtent: vi.fn((block: any) => ({ ...block, extentMinutes: block.state === 'template' ? 30 : block.extentMinutes })),
   instantiateBlockFromSource: vi.fn((sourceBlock: any, options: any) => ({ ...sourceBlock, ...options })),
   resizePlacement: vi.fn(({ startTime, extentMinutes }: any) => ({ startTime, extentMinutes })),
@@ -9,7 +9,7 @@ vi.mock('block_engine_foundation', () => ({
   changeBlockExtent: vi.fn((block: any, extentMinutes: number) => ({ ...block, extentMinutes }))
 }));
 
-vi.mock('async_integration_foundation', () => ({
+vi.mock('@strandsbjerg/async-integration-foundation', () => ({
   createQueueId: vi.fn(() => 'queue-from-foundation'),
   createQueueItemId: vi.fn(({ blockId }: any) => `queue-item-${blockId}`),
   buildQueueItem: vi.fn(({ id, queueId, block, slot, operation, reason }: any) => ({
@@ -59,12 +59,12 @@ describe('direct foundation runtime usage', () => {
     const placedImported = placeBlockOnLane(placedTemplate, 'import-1', 'lane-tuesday', '10:00');
     expect(placedImported.queue.items[0]?.id).toBe('queue-item-import-1');
 
-    const asyncFoundation = await import('async_integration_foundation');
+    const asyncFoundation = await import('@strandsbjerg/async-integration-foundation');
     expect(asyncFoundation.createQueueId).toHaveBeenCalled();
     expect(asyncFoundation.createQueueItemId).toHaveBeenCalled();
     expect(asyncFoundation.buildQueueItem).toHaveBeenCalled();
 
-    const blockFoundation = await import('block_engine_foundation');
+    const blockFoundation = await import('@strandsbjerg/block-engine-foundation');
     expect(blockFoundation.normalizeBlockExtent).toHaveBeenCalled();
     expect(blockFoundation.instantiateBlockFromSource).toHaveBeenCalled();
     expect(blockFoundation.changeBlockState).toHaveBeenCalled();

@@ -3,7 +3,7 @@ import {
   createPlacementSnapshot,
   instantiateBlockFromSource,
   normalizeBlockExtent
-} from 'block_engine_foundation';
+} from '@strandsbjerg/block-engine-foundation';
 import {
   appendPlacement,
   createQueueId,

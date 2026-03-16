@@ -1,5 +1,5 @@
-import { buildQueueItem, createQueueId as createFoundationQueueId, createQueueItemId } from 'async_integration_foundation';
-import { changeBlockExtent, resizePlacement } from 'block_engine_foundation';
+import { buildQueueItem, createQueueId as createFoundationQueueId, createQueueItemId } from '@strandsbjerg/async-integration-foundation';
+import { changeBlockExtent, resizePlacement } from '@strandsbjerg/block-engine-foundation';
 import type {
   BoardState,
   DayKey,
