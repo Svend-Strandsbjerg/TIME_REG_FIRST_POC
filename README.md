@@ -60,14 +60,14 @@ Committed baseline now tracks day + start time (and optional extent baseline met
 
 The POC now calls foundation runtime APIs directly:
 
-- `BLOCK_ENGINE_FOUNDATION` (`block_engine_foundation`):
+- `BLOCK_ENGINE_FOUNDATION` (`@strandsbjerg/block-engine-foundation`):
   - `normalizeBlockExtent`
   - `instantiateBlockFromSource`
   - `resizePlacement`
   - `createPlacementSnapshot`
   - `changeBlockState`
   - `changeBlockExtent`
-- `ASYNC_INTEGRATION_FOUNDATION` (`async_integration_foundation`):
+- `ASYNC_INTEGRATION_FOUNDATION` (`@strandsbjerg/async-integration-foundation`):
   - `createQueueId`
   - `createQueueItemId`
   - `buildQueueItem`

@@ -1,4 +1,4 @@
-declare module 'block_engine_foundation' {
+declare module '@strandsbjerg/block-engine-foundation' {
   export type BlockState = 'template' | 'imported' | 'uncommitted' | 'committed';
 
   export type Block = {
@@ -46,7 +46,7 @@ declare module 'block_engine_foundation' {
   export const changeBlockExtent: (block: Block, extentMinutes: number) => Block;
 }
 
-declare module 'async_integration_foundation' {
+declare module '@strandsbjerg/async-integration-foundation' {
   export const createQueueId: (scope?: string) => string;
   export const createQueueItemId: (request: {
     queueId: string;
