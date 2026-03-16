@@ -135,6 +135,17 @@ const isCommittedPlacementChangedFromBaseline = (state: BoardState, blockId: str
   return !isCommittedPlacementMatchingBaseline(state, blockId);
 };
 
+const isCommittedPlacementDisplacedFromBoard = (state: BoardState, blockId: string): boolean => {
+  const block = state.blocks.find((candidate) => candidate.id === blockId);
+  const placement = state.placements.find((candidate) => candidate.blockId === blockId);
+
+  if (!block || block.state !== 'committed' || !placement?.committedPlacement) {
+    return false;
+  }
+
+  return placement.laneId === 'unplanned';
+};
+
 const describeCommittedCandidateStatus = (state: BoardState, blockId: string) => {
   const block = state.blocks.find((candidate) => candidate.id === blockId);
   const placement = state.placements.find((candidate) => candidate.blockId === blockId);
@@ -150,7 +161,7 @@ const describeCommittedCandidateStatus = (state: BoardState, blockId: string) =>
     extentMinutes: block?.extentMinutes,
     isMatchingBaseline,
     isChangedFromBaseline,
-    includedInChangedCommittedCandidates: isChangedFromBaseline
+    includedInChangedCommittedCandidates: isCommittedPlacementDisplacedFromBoard(state, blockId)
   };
 };
 
@@ -195,7 +206,7 @@ export const buildPlanningView = (state: BoardState): WeeklyBoardView => {
     .map((block) => toCandidateCard(block));
 
   const changedCommittedCandidates = state.placements
-    .filter((placement) => isCommittedPlacementChangedFromBaseline(state, placement.blockId))
+    .filter((placement) => isCommittedPlacementDisplacedFromBoard(state, placement.blockId))
     .map((placement) => blockLookup.get(placement.blockId))
     .filter((block): block is TimeBlock => block !== undefined && block.state === 'committed')
     .map((block) => ({
