@@ -55,11 +55,11 @@ describe('seeded demo startup state', () => {
 
     expect(mondayMoved?.startTime).toBe('10:00');
     expect(mondayMoved?.visualState).toBe('uncommitted');
-    expect(movedCandidate).toBeUndefined();
+    expect(movedCandidate?.visualState).toBe('uncommitted');
     expect(removedCandidate?.visualState).toBe('uncommitted');
     expect(fridayMoved?.startTime).toBe('15:30');
     expect(fridayMoved?.visualState).toBe('uncommitted');
-    expect(movedFridayCandidate).toBeUndefined();
+    expect(movedFridayCandidate?.visualState).toBe('uncommitted');
 
     const operationsByBlock = new Map(seeded.queue.items.map((item) => [item.blockId, item.operation]));
     expect(operationsByBlock.get('block-activity-8-instance-8')).toBe('update');
