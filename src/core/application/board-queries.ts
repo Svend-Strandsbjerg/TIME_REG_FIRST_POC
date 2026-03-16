@@ -56,7 +56,11 @@ const overlaps = (a: TimeBlockCardView, b: TimeBlockCardView): boolean => {
 const withParallelLayout = (placedBlocks: TimeBlockCardView[]): TimeBlockCardView[] => {
   const sorted = placedBlocks
     .slice()
-    .sort((a, b) => (a.startTime ?? '').localeCompare(b.startTime ?? '') || (a.endTime ?? '').localeCompare(b.endTime ?? ''));
+    .sort(
+      (a, b) =>
+        (a.startTime ?? '').localeCompare(b.startTime ?? '') ||
+        a.block.id.localeCompare(b.block.id)
+    );
 
   const groups: TimeBlockCardView[][] = [];
 
@@ -69,13 +73,15 @@ const withParallelLayout = (placedBlocks: TimeBlockCardView[]): TimeBlockCardVie
     }
   }
 
-  return groups.flatMap((group) =>
-    group.map((card, index) => ({
+  return groups.flatMap((group) => {
+    const stableColumnOrder = group.slice().sort((a, b) => a.block.id.localeCompare(b.block.id));
+
+    return stableColumnOrder.map((card, index) => ({
       ...card,
       layoutColumn: index,
-      layoutColumnCount: group.length
-    }))
-  );
+      layoutColumnCount: stableColumnOrder.length
+    }));
+  });
 };
 
 const isCommittedPlacementMatchingBaseline = (state: BoardState, blockId: string): boolean => {
@@ -146,7 +152,7 @@ export const buildPlanningView = (state: BoardState): WeeklyBoardView => {
     .map((block) => toCandidateCard(block));
 
   const changedCommittedCandidates = state.placements
-    .filter((placement) => isCommittedPlacementChangedFromBaseline(state, placement.blockId))
+    .filter((placement) => placement.laneId === 'unplanned' && isCommittedPlacementChangedFromBaseline(state, placement.blockId))
     .map((placement) => blockLookup.get(placement.blockId))
     .filter((block): block is TimeBlock => block !== undefined && block.state === 'committed')
     .map((block) => ({

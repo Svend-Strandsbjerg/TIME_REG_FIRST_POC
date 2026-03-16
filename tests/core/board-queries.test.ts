@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildPlanningView } from '../../src/core/application/board-queries';
-import { createBoardWeek, placeBlockOnLane, returnBlockToPool } from '../../src/core/application/board-service';
+import { createBoardWeek, placeBlockOnLane, resizeBlockFromBottom, returnBlockToPool } from '../../src/core/application/board-service';
 import type { TimeBlock } from '../../src/core/domain/board-types';
 
 const blocks: TimeBlock[] = [
@@ -89,5 +89,45 @@ describe('board queries', () => {
 
     expect(overlapping?.length).toBeGreaterThanOrEqual(2);
     expect(new Set(overlapping?.map((card) => card.layoutColumnCount))).toEqual(new Set([2]));
+  });
+
+  it('removes changed committed entries from candidate list after restoring to baseline lane/time', () => {
+    const board = createBoardWeek(blocks);
+    const moved = placeBlockOnLane(board, 'committed-1', 'lane-tuesday', '10:00');
+    const restored = placeBlockOnLane(moved, 'committed-1', 'lane-monday', '08:30');
+
+    const changedView = buildPlanningView(moved);
+    const restoredView = buildPlanningView(restored);
+
+    expect(changedView.changedCommittedCandidates.find((card) => card.block.id === 'committed-1')).toBeUndefined();
+    expect(restoredView.changedCommittedCandidates.find((card) => card.block.id === 'committed-1')).toBeUndefined();
+  });
+
+  it('keeps side-by-side lane ordering stable when extents are resized', () => {
+    const board = createBoardWeek(blocks);
+    const withFirst = placeBlockOnLane(board, 'imported-1', 'lane-wednesday', '08:30');
+    const withSecond = placeBlockOnLane(withFirst, 'template-1', 'lane-wednesday', '08:30');
+
+    const initialView = buildPlanningView(withSecond);
+    const spawnedId = withSecond.blocks.find((block) => block.metadata?.templateSourceBlockId === 'template-1')?.id;
+    expect(spawnedId).toBeDefined();
+
+    const resizedBoard = resizeBlockFromBottom(withSecond, spawnedId as string, 2);
+    const resizedView = buildPlanningView(resizedBoard);
+
+    const initialColumns = new Map(
+      initialView.lanes
+        .find((lane) => lane.lane.dayKey === 'wednesday')
+        ?.placedBlocks.map((card) => [card.block.id, card.layoutColumn])
+    );
+
+    const resizedColumns = new Map(
+      resizedView.lanes
+        .find((lane) => lane.lane.dayKey === 'wednesday')
+        ?.placedBlocks.map((card) => [card.block.id, card.layoutColumn])
+    );
+
+    expect(initialColumns.get('imported-1')).toBe(resizedColumns.get('imported-1'));
+    expect(initialColumns.get(spawnedId as string)).toBe(resizedColumns.get(spawnedId as string));
   });
 });

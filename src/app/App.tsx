@@ -23,6 +23,7 @@ type DescriptionEditorState = {
 export const App = () => {
   const [state, setState] = useState<BoardState | null>(null);
   const [descriptionEditor, setDescriptionEditor] = useState<DescriptionEditorState | null>(null);
+  const [hideWeekends, setHideWeekends] = useState(false);
 
   useEffect(() => {
     const source = new MockBlockSource();
@@ -57,6 +58,28 @@ export const App = () => {
   const planningView = useMemo(() => (state ? buildPlanningView(state) : null), [state]);
   const draftProjection = useMemo(() => (state ? convertPlacedBlockToTimeEntryDraft(state) : []), [state]);
   const queueReadyProjection = useMemo(() => toQueueReadyEntries(draftProjection, 'planning-week-preview'), [draftProjection]);
+  const hasHiddenWeekendNonCommittedBlocks = useMemo(() => {
+    if (!state) {
+      return false;
+    }
+
+    const laneById = new Map(state.lanes.map((lane) => [lane.id, lane]));
+
+    return state.placements.some((placement) => {
+      const lane = laneById.get(placement.laneId);
+      if (!lane || (lane.dayKey !== 'saturday' && lane.dayKey !== 'sunday')) {
+        return false;
+      }
+
+      const block = state.blocks.find((candidate) => candidate.id === placement.blockId);
+      if (!block) {
+        return false;
+      }
+
+      return block.state !== 'committed';
+    });
+  }, [state]);
+
   const selectedBlock = useMemo(
     () => state?.blocks.find((candidate) => candidate.id === descriptionEditor?.blockId),
     [descriptionEditor?.blockId, state]
@@ -70,6 +93,9 @@ export const App = () => {
     <>
       <TimeRegistrationBoard
         board={planningView}
+        hideWeekends={hideWeekends}
+        hasHiddenWeekendNonCommittedBlocks={hasHiddenWeekendNonCommittedBlocks}
+        onToggleHideWeekends={setHideWeekends}
         onPlaceBlock={(blockId, laneId, startTime) =>
           setState((current) => (current ? placeBlockOnLane(current, blockId, laneId, startTime) : current))
         }
