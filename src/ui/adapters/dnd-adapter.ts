@@ -4,6 +4,7 @@ export type BlockDragPayload = {
   dragType: 'timesheet-block';
   blockId: string;
   fromLaneId?: string;
+  dragOrigin?: 'lane' | 'candidate-imported' | 'candidate-template' | 'candidate-changed-committed';
 };
 
 export const BLOCK_DRAG_MIME = 'application/x-timesheet-block+json';
@@ -60,7 +61,12 @@ export const readBlockPayload = (event: DragEvent): BlockDragPayload | null => {
     try {
       const maybeLegacy = JSON.parse(legacyRaw || '{}') as { blockId?: string; fromLaneId?: string };
       if (typeof maybeLegacy.blockId === 'string' && maybeLegacy.blockId.length > 0) {
-        return { dragType: 'timesheet-block', blockId: maybeLegacy.blockId, fromLaneId: maybeLegacy.fromLaneId };
+        return {
+          dragType: 'timesheet-block',
+          blockId: maybeLegacy.blockId,
+          fromLaneId: maybeLegacy.fromLaneId,
+          dragOrigin: maybeLegacy.fromLaneId ? 'lane' : undefined
+        };
       }
     } catch {
       return null;

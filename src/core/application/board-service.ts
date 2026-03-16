@@ -16,6 +16,14 @@ import { WEEK_LANES } from '../domain/day-lane';
 import type { BoardState, DayKey, DayLaneId, PlacedBlock, TimeBlock, TimeBlockId, TimeOfDay } from '../domain/board-types';
 import { clampToPlanningWindow } from '../domain/time-slot';
 
+type DragOrigin = 'lane' | 'candidate-imported' | 'candidate-template' | 'candidate-changed-committed';
+
+type PlaceBlockContext = {
+  dragOrigin?: DragOrigin;
+};
+
+const DEBUG_SEEDED_CHANGED_COMMITTED_IDS = new Set(['demo-committed-move', 'demo-committed-remove', 'demo-committed-reschedule']);
+
 type CommittedMetadata = {
   laneId: DayLaneId;
   startTime: TimeOfDay;
@@ -214,7 +222,13 @@ export const createBoardWeek = (blocks: TimeBlock[]): BoardState => {
   });
 };
 
-export const placeBlockOnLane = (state: BoardState, blockId: TimeBlockId, laneId: DayLaneId, startTime: TimeOfDay): BoardState => {
+export const placeBlockOnLane = (
+  state: BoardState,
+  blockId: TimeBlockId,
+  laneId: DayLaneId,
+  startTime: TimeOfDay,
+  context?: PlaceBlockContext
+): BoardState => {
   const block = state.blocks.find((candidate) => candidate.id === blockId);
   if (!block) {
     return state;
@@ -222,12 +236,26 @@ export const placeBlockOnLane = (state: BoardState, blockId: TimeBlockId, laneId
 
   const existingPlacement = getPlacementForBlock(state, blockId);
   const committedPlacement = existingPlacement?.committedPlacement;
+  const isChangedCommittedCandidateDrag = context?.dragOrigin === 'candidate-changed-committed';
   const shouldSnapToCommittedBaseline =
     block.state === 'committed' &&
-    existingPlacement?.laneId === 'unplanned' &&
+    (existingPlacement?.laneId === 'unplanned' || isChangedCommittedCandidateDrag) &&
     committedPlacement?.laneId === laneId;
 
   const resolvedStartTime = shouldSnapToCommittedBaseline ? committedPlacement.startTime : startTime;
+
+  if (DEBUG_SEEDED_CHANGED_COMMITTED_IDS.has(blockId)) {
+    console.info('[restore-debug][drop-mutation]', {
+      blockId,
+      dragOrigin: context?.dragOrigin,
+      requestedDrop: { laneId, startTime },
+      placementBefore: existingPlacement
+        ? { laneId: existingPlacement.laneId, startTime: existingPlacement.startTime, committedPlacement: existingPlacement.committedPlacement }
+        : null,
+      shouldSnapToCommittedBaseline,
+      resolvedStartTime
+    });
+  }
 
   if (block.state !== 'template') {
     return appendPlacement(state, blockId, laneId, resolvedStartTime);
@@ -281,7 +309,7 @@ export const autoPlaceImportedBlock = (state: BoardState, blockId: TimeBlockId):
     return state;
   }
 
-  return placeBlockOnLane(state, blockId, laneId, importedPlacement.importedStartTime);
+  return placeBlockOnLane(state, blockId, laneId, importedPlacement.importedStartTime, { dragOrigin: 'candidate-imported' });
 };
 
 export const updateBlockDescription = (state: BoardState, blockId: TimeBlockId, description: string): BoardState => ({

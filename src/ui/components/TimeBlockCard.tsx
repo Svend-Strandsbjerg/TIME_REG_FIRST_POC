@@ -8,6 +8,7 @@ import { writeBlockPayload } from '../adapters/dnd-adapter';
 type Props = {
   card: TimeBlockCardView;
   fromLaneId?: string;
+  dragOrigin?: 'lane' | 'candidate-imported' | 'candidate-template' | 'candidate-changed-committed';
   onResizeTop?: (blockId: string, slotDelta: number) => void;
   onResizeBottom?: (blockId: string, slotDelta: number) => void;
   onDoubleClick?: (blockId: string) => void;
@@ -16,7 +17,15 @@ type Props = {
 
 const SLOT_HEIGHT_PX = extentToCalendarHeight(SLOT_MINUTES);
 
-export const TimeBlockCard = ({ card, fromLaneId, onDoubleClick, onResizeBottom, onResizeTop, visualContext = 'candidate' }: Props) => {
+export const TimeBlockCard = ({
+  card,
+  fromLaneId,
+  dragOrigin,
+  onDoubleClick,
+  onResizeBottom,
+  onResizeTop,
+  visualContext = 'candidate'
+}: Props) => {
   const isResizingRef = useRef(false);
 
   const beginResize = (event: ReactPointerEvent<HTMLDivElement>, edge: 'top' | 'bottom') => {
@@ -64,7 +73,7 @@ export const TimeBlockCard = ({ card, fromLaneId, onDoubleClick, onResizeBottom,
           return;
         }
         event.stopPropagation();
-        writeBlockPayload(event, { blockId: card.block.id, fromLaneId });
+        writeBlockPayload(event, { blockId: card.block.id, fromLaneId, dragOrigin });
       }}
       onDoubleClick={() => onDoubleClick?.(card.block.id)}
       className={`time-block-card time-block-card--${card.visualState} time-block-card--${visualContext}`}

@@ -37,10 +37,11 @@ describe('dnd-adapter block payload contract', () => {
   it('writes app-specific payload and fallback drag types on dragstart', () => {
     const event = createMockDragEvent();
 
-    writeBlockPayload(event, { blockId: 'block-123', fromLaneId: 'monday' });
+    writeBlockPayload(event, { blockId: 'block-123', fromLaneId: 'monday', dragOrigin: 'lane' });
 
     expect(event.dataTransfer.effectAllowed).toBe('move');
     expect(event.dataTransfer.getData(BLOCK_DRAG_MIME)).toContain('"blockId":"block-123"');
+    expect(event.dataTransfer.getData(BLOCK_DRAG_MIME)).toContain('"dragOrigin":"lane"');
     expect(event.dataTransfer.getData('application/x-timesheet-drag-kind')).toBe('timesheet-block');
     expect(event.dataTransfer.getData('text/plain')).toBe('timesheet-block:block-123');
     expect(hasBlockPayload(event)).toBe(true);
@@ -54,14 +55,16 @@ describe('dnd-adapter block payload contract', () => {
       JSON.stringify({
         dragType: 'timesheet-block',
         blockId: 'block-456',
-        fromLaneId: 'tuesday'
+        fromLaneId: 'tuesday',
+        dragOrigin: 'candidate-changed-committed'
       })
     );
 
     expect(readBlockPayload(event)).toEqual({
       dragType: 'timesheet-block',
       blockId: 'block-456',
-      fromLaneId: 'tuesday'
+      fromLaneId: 'tuesday',
+      dragOrigin: 'candidate-changed-committed'
     });
   });
 
@@ -73,7 +76,8 @@ describe('dnd-adapter block payload contract', () => {
     expect(readBlockPayload(event)).toEqual({
       dragType: 'timesheet-block',
       blockId: 'legacy-block',
-      fromLaneId: 'wednesday'
+      fromLaneId: 'wednesday',
+      dragOrigin: 'lane'
     });
   });
 });

@@ -96,8 +96,10 @@ export const App = () => {
         hideWeekends={hideWeekends}
         hasHiddenWeekendNonCommittedBlocks={hasHiddenWeekendNonCommittedBlocks}
         onToggleHideWeekends={setHideWeekends}
-        onPlaceBlock={(blockId, laneId, startTime) =>
-          setState((current) => (current ? placeBlockOnLane(current, blockId, laneId, startTime) : current))
+        onPlaceBlock={(blockId, laneId, startTime, dragOrigin) =>
+          setState((current) =>
+            current ? placeBlockOnLane(current, blockId, laneId, startTime, { dragOrigin }) : current
+          )
         }
         onReturnBlock={(blockId) => setState((current) => (current ? returnBlockToPool(current, blockId) : current))}
         onResizeTop={(blockId, slotDelta) =>

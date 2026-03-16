@@ -8,7 +8,12 @@ type Props = {
   hideWeekends: boolean;
   hasHiddenWeekendNonCommittedBlocks: boolean;
   onToggleHideWeekends: (nextValue: boolean) => void;
-  onPlaceBlock: (blockId: string, laneId: string, startTime: string) => void;
+  onPlaceBlock: (
+    blockId: string,
+    laneId: string,
+    startTime: string,
+    dragOrigin?: 'lane' | 'candidate-imported' | 'candidate-template' | 'candidate-changed-committed'
+  ) => void;
   onReturnBlock: (blockId: string) => void;
   onResizeTop: (blockId: string, slotDelta: number) => void;
   onResizeBottom: (blockId: string, slotDelta: number) => void;
