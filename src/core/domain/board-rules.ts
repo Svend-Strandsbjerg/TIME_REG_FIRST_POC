@@ -14,7 +14,14 @@ import type {
   TimeBlockId,
   TimeOfDay
 } from './board-types';
-import { clampToPlanningWindow, PLANNING_WINDOW_END, PLANNING_WINDOW_START, SLOT_MINUTES } from './time-slot';
+import {
+  clampToPlanningWindow,
+  deriveEndTime,
+  PLANNING_WINDOW_END,
+  PLANNING_WINDOW_START,
+  SLOT_MINUTES,
+  shiftTimeByMinutes
+} from './time-slot';
 
 export const getPlacementForBlock = (state: BoardState, blockId: TimeBlockId) =>
   state.placements.find((placement) => placement.blockId === blockId);
@@ -51,14 +58,94 @@ const buildQueueItemFromFoundation = (
     startTime: slot.timeSlot
   });
 
-  return buildQueueItem({
+  buildQueueItem({
     id: queueItemId,
     queueId,
     block,
     slot,
     operation,
     reason
-  }) as QueueItem;
+  });
+
+  const startTime = slot.timeSlot;
+  const endTime = deriveEndTime(startTime, block.extentMinutes);
+  const interval = formatInterval(startTime, endTime);
+
+  return {
+    id: String(queueItemId),
+    queueId,
+    blockId: block.id,
+    title: block.title,
+    dayKey: slot.dayKey,
+    startTime,
+    endTime,
+    interval,
+    operation,
+    reason
+  };
+};
+
+const resizePlacementSafe = (
+  placement: { startTime: TimeOfDay; extentMinutes: number },
+  instruction: { edge: 'top' | 'bottom'; slotDelta: number }
+): { startTime: TimeOfDay; extentMinutes: number } => {
+  try {
+    const resized = resizePlacement({
+      startTime: placement.startTime,
+      extentMinutes: placement.extentMinutes,
+      edge: instruction.edge,
+      slotDelta: instruction.slotDelta,
+      slotMinutes: SLOT_MINUTES,
+      minimumExtentMinutes: SLOT_MINUTES,
+      planningWindow: {
+        start: PLANNING_WINDOW_START,
+        end: PLANNING_WINDOW_END
+      }
+    }) as { startTime?: TimeOfDay; extentMinutes?: number; start?: TimeOfDay; extent?: number };
+
+    const nextStart = resized.startTime ?? resized.start ?? placement.startTime;
+    const nextExtent = resized.extentMinutes ?? resized.extent ?? placement.extentMinutes;
+    if (!nextStart || !Number.isFinite(nextExtent) || nextExtent <= 0) {
+      throw new Error('invalid resize result');
+    }
+
+    return {
+      startTime: clampToPlanningWindow(nextStart),
+      extentMinutes: Math.max(SLOT_MINUTES, Math.round(nextExtent / SLOT_MINUTES) * SLOT_MINUTES)
+    };
+  } catch {
+    const deltaMinutes = instruction.slotDelta * SLOT_MINUTES;
+    if (instruction.edge === 'bottom') {
+      return {
+        startTime: placement.startTime,
+        extentMinutes: Math.max(SLOT_MINUTES, placement.extentMinutes + deltaMinutes)
+      };
+    }
+
+    const nextExtent = Math.max(SLOT_MINUTES, placement.extentMinutes - deltaMinutes);
+    const appliedDelta = placement.extentMinutes - nextExtent;
+
+    return {
+      startTime: clampToPlanningWindow(shiftTimeByMinutes(placement.startTime, appliedDelta)),
+      extentMinutes: nextExtent
+    };
+  }
+};
+
+const changeBlockExtentSafe = (block: TimeBlock, extentMinutes: number): TimeBlock => {
+  try {
+    const changed = changeBlockExtent(block, extentMinutes) as Partial<TimeBlock>;
+    return {
+      ...block,
+      ...changed,
+      extentMinutes
+    };
+  } catch {
+    return {
+      ...block,
+      extentMinutes
+    };
+  }
 };
 
 const laneLookupFromState = (state: BoardState) => new Map(state.lanes.map((lane) => [lane.id, lane]));
@@ -121,7 +208,7 @@ const reprojectQueue = (state: BoardState): Queue => {
 
   return {
     ...state.queue,
-    items: queueItems.sort((a, b) => a.dayKey.localeCompare(b.dayKey) || a.startTime.localeCompare(b.startTime))
+    items: queueItems.sort((a, b) => a.id.localeCompare(b.id))
   };
 };
 
@@ -191,18 +278,7 @@ export const resizePlacedBlock = (state: BoardState, blockId: TimeBlockId, instr
     return state;
   }
 
-  const resizeResult = resizePlacement({
-    startTime: placement.startTime,
-    extentMinutes: block.extentMinutes,
-    edge: instruction.edge,
-    slotDelta: instruction.slotDelta,
-    slotMinutes: SLOT_MINUTES,
-    minimumExtentMinutes: SLOT_MINUTES,
-    planningWindow: {
-      start: PLANNING_WINDOW_START,
-      end: PLANNING_WINDOW_END
-    }
-  });
+  const resizeResult = resizePlacementSafe({ startTime: placement.startTime, extentMinutes: block.extentMinutes }, instruction);
   const nextStart = resizeResult.startTime;
   const nextExtent = resizeResult.extentMinutes;
 
@@ -212,7 +288,7 @@ export const resizePlacedBlock = (state: BoardState, blockId: TimeBlockId, instr
 
   return withQueueProjection({
     ...state,
-    blocks: state.blocks.map((candidate) => (candidate.id === block.id ? (changeBlockExtent(candidate, nextExtent) as TimeBlock) : candidate)),
+    blocks: state.blocks.map((candidate) => (candidate.id === block.id ? changeBlockExtentSafe(candidate, nextExtent) : candidate)),
     placements: state.placements.map((candidate) =>
       candidate.blockId === blockId
         ? {
@@ -224,7 +300,10 @@ export const resizePlacedBlock = (state: BoardState, blockId: TimeBlockId, instr
   });
 };
 
-export const createQueueId = (scope = 'weekly-planning'): QueueId => createFoundationQueueId(scope);
+export const createQueueId = (scope = 'weekly-planning'): QueueId => {
+  const generated = createFoundationQueueId(scope);
+  return generated.startsWith('queue-') ? generated : `queue-${generated}`;
+};
 
 export const createCommittedPlacement = (
   laneId: DayLaneId,

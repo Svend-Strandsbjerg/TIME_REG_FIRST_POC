@@ -30,10 +30,20 @@ export const App = () => {
       const startupState = applySeededDemoState(createBoardWeek(withSeededStartupBlocks(blocks)));
       const startupView = buildPlanningView(startupState);
 
+      console.info('[startup-demo] startup state blocks', {
+        blockCount: startupState.blocks.length,
+        seededBlocks: startupState.blocks
+          .filter((block) => block.id.startsWith('demo-'))
+          .map((block) => ({ id: block.id, state: block.state, metadata: block.metadata }))
+      });
+
       console.info('[startup-demo] candidate counts', {
         imported: startupView.importedCandidates.length,
         templates: startupView.templateCandidates.length,
-        changedCommitted: startupView.changedCommittedCandidates.length
+        changedCommitted: startupView.changedCommittedCandidates.length,
+        importedIds: startupView.importedCandidates.map((card) => card.block.id),
+        templateIds: startupView.templateCandidates.map((card) => card.block.id),
+        changedCommittedIds: startupView.changedCommittedCandidates.map((card) => card.block.id)
       });
 
       console.assert(startupView.importedCandidates.length > 0, '[startup-demo] expected imported candidates at startup');
