@@ -207,6 +207,45 @@ describe('board-service queue simulation', () => {
     expect(importedCard?.visualState).toBe('uncommitted');
   });
 
+
+  it('initializes changed committed placements from current placement metadata while keeping baseline semantics', () => {
+    const changedCommitted: TimeBlock = {
+      id: 'changed-committed-1',
+      title: 'Changed committed seed',
+      extentMinutes: 60,
+      source: 'mock-api',
+      state: 'committed',
+      metadata: {
+        committedPlacement: {
+          laneId: 'lane-monday',
+          startTime: '08:30',
+          extentMinutes: 60
+        },
+        currentPlacement: {
+          laneId: 'lane-thursday',
+          startTime: '10:30'
+        }
+      }
+    };
+
+    const board = createBoardWeek([changedCommitted]);
+    const view = buildPlanningView(board);
+    const placed = view.lanes.find((lane) => lane.lane.id === 'lane-thursday')?.placedBlocks.find((card) => card.block.id === 'changed-committed-1');
+
+    expect(placed?.startTime).toBe('10:30');
+    expect(placed?.visualState).toBe('uncommitted');
+    expect(board.queue.items.find((item) => item.blockId === 'changed-committed-1')?.operation).toBe('update');
+
+    const restored = placeBlockOnLane(board, 'changed-committed-1', 'lane-monday', '08:30');
+    const restoredView = buildPlanningView(restored);
+    const restoredPlacement = restoredView.lanes
+      .find((lane) => lane.lane.id === 'lane-monday')
+      ?.placedBlocks.find((card) => card.block.id === 'changed-committed-1');
+
+    expect(restoredPlacement?.visualState).toBe('committed');
+    expect(restored.queue.items.find((item) => item.blockId === 'changed-committed-1')).toBeUndefined();
+  });
+
   it('description updates are persisted in block payload metadata', () => {
     const board = createBoardWeek(blocks);
     const updated = updateBlockDescription(board, 'b3', 'Updated planner description');

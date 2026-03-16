@@ -56,6 +56,27 @@ Committed baseline now tracks day + start time (and optional extent baseline met
 - This is a lightweight calendar-style packing strategy intended for predictable visual clarity.
 
 
+
+## Seeded demo data (auto-loaded on startup)
+
+The mock inbound source now seeds representative demo data so the board is immediately usable:
+
+- **Imported candidates (blue):**
+  - Outlook meeting: Wednesday 08:30-09:30
+  - Azure task work: Tuesday 13:00-15:00
+  - Scrum/tool-derived work item: Thursday 10:00-11:30
+  - Includes imported placement metadata (`importedDayKey`, `importedStartTime`, `importedEndTime`) and imported `description` payload for auto-placement + editing flow validation.
+- **PSP templates (purple):**
+  - PSP-1001 Internal project work
+  - PSP-2003 Customer follow-up
+  - PSP-3007 Support / incident handling
+  - Templates are reusable in candidates, default to 30 minutes, and render as label-only before placement.
+- **Changed committed entries (red semantics):**
+  - Baseline Monday 08:30-09:30 now moved
+  - Baseline Tuesday 10:00-11:00 now removed to unplanned
+  - Baseline Thursday 14:00-15:30 now moved
+  - Seeded via `committedPlacement` (baseline) + `currentPlacement` (current state) metadata so queue update/delete semantics and baseline restoration are immediately testable.
+
 ## Foundation runtime ownership in this repo
 
 The POC now calls foundation runtime APIs directly:
