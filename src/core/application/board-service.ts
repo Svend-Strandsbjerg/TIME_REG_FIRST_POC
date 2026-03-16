@@ -220,8 +220,17 @@ export const placeBlockOnLane = (state: BoardState, blockId: TimeBlockId, laneId
     return state;
   }
 
+  const existingPlacement = getPlacementForBlock(state, blockId);
+  const committedPlacement = existingPlacement?.committedPlacement;
+  const shouldSnapToCommittedBaseline =
+    block.state === 'committed' &&
+    existingPlacement?.laneId === 'unplanned' &&
+    committedPlacement?.laneId === laneId;
+
+  const resolvedStartTime = shouldSnapToCommittedBaseline ? committedPlacement.startTime : startTime;
+
   if (block.state !== 'template') {
-    return appendPlacement(state, blockId, laneId, startTime);
+    return appendPlacement(state, blockId, laneId, resolvedStartTime);
   }
 
   const spawnedBlock = createSpawnedBlockFromTemplate(state, block);
@@ -232,7 +241,7 @@ export const placeBlockOnLane = (state: BoardState, blockId: TimeBlockId, laneId
     },
     spawnedBlock.id,
     laneId,
-    startTime
+    resolvedStartTime
   );
 };
 
