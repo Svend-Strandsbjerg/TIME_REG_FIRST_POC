@@ -105,14 +105,8 @@ const mergeMissingBlocks = (blocks: TimeBlock[], required: TimeBlock[]): TimeBlo
 };
 
 export const withSeededStartupBlocks = (blocks: TimeBlock[]): TimeBlock[] => {
-  const withImported =
-    blocks.some((block) => block.state === 'imported') ? blocks : mergeMissingBlocks(blocks, STARTUP_DEMO_IMPORTED_BLOCKS);
-
-  const withTemplates =
-    withImported.some((block) => block.state === 'template')
-      ? withImported
-      : mergeMissingBlocks(withImported, STARTUP_DEMO_TEMPLATE_BLOCKS);
-
+  const withImported = mergeMissingBlocks(blocks, STARTUP_DEMO_IMPORTED_BLOCKS);
+  const withTemplates = mergeMissingBlocks(withImported, STARTUP_DEMO_TEMPLATE_BLOCKS);
   return mergeMissingBlocks(withTemplates, STARTUP_DEMO_COMMITTED_BLOCKS);
 };
 
