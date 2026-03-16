@@ -63,6 +63,7 @@ export const TimeBlockCard = ({ card, fromLaneId, onDoubleClick, onResizeBottom,
           event.preventDefault();
           return;
         }
+        event.stopPropagation();
         writeBlockPayload(event, { blockId: card.block.id, fromLaneId });
       }}
       onDoubleClick={() => onDoubleClick?.(card.block.id)}
@@ -75,18 +76,20 @@ export const TimeBlockCard = ({ card, fromLaneId, onDoubleClick, onResizeBottom,
           onPointerDown={(event) => beginResize(event, 'top')}
           aria-label="Resize block from top"
           role="separator"
+          draggable={false}
         />
       )}
-      <strong>{card.block.title}</strong>
-      {card.isTemplate ? <small>Reusable template</small> : null}
-      {card.templateSourceBlockId ? <small>From template: {card.templateSourceBlockId}</small> : null}
-      {card.interval ? <span>{card.interval}</span> : null}
+      <strong draggable={false}>{card.block.title}</strong>
+      {card.isTemplate ? <small draggable={false}>Reusable template</small> : null}
+      {card.templateSourceBlockId ? <small draggable={false}>From template: {card.templateSourceBlockId}</small> : null}
+      {card.interval ? <span draggable={false}>{card.interval}</span> : null}
       {(onResizeTop || onResizeBottom) && (
         <div
           className="resize-handle resize-handle--bottom"
           onPointerDown={(event) => beginResize(event, 'bottom')}
           aria-label="Resize block from bottom"
           role="separator"
+          draggable={false}
         />
       )}
     </article>

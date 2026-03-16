@@ -1,6 +1,6 @@
 import type { DragEvent } from 'react';
 import type { DayLaneView } from '../../core/application/board-queries';
-import { readBlockPayload } from '../adapters/dnd-adapter';
+import { hasBlockPayload, readBlockPayload } from '../adapters/dnd-adapter';
 import { TimeBlockCard } from './TimeBlockCard';
 
 type Props = {
@@ -30,7 +30,14 @@ export const DayLaneColumn = ({ lane, onDropBlock, onResizeBottom, onResizeTop, 
     <span className="lane-summary">{lane.placedBlocks.length} planned</span>
     <div
       className="time-lane-grid"
-      onDragOver={(event) => event.preventDefault()}
+      onDragOver={(event) => {
+        if (!hasBlockPayload(event)) {
+          return;
+        }
+
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+      }}
       onDrop={(event) => {
         event.preventDefault();
         const payload = readBlockPayload(event);
