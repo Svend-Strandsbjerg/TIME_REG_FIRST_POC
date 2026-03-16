@@ -91,16 +91,18 @@ describe('board queries', () => {
     expect(new Set(overlapping?.map((card) => card.layoutColumnCount))).toEqual(new Set([2]));
   });
 
-  it('removes changed committed entries from candidate list after restoring to baseline lane/time', () => {
+  it('keeps moved committed entries on-board only and out of changed committed candidates', () => {
     const board = createBoardWeek(blocks);
     const moved = placeBlockOnLane(board, 'committed-1', 'lane-tuesday', '10:00');
-    const restored = placeBlockOnLane(moved, 'committed-1', 'lane-monday', '08:30');
 
-    const changedView = buildPlanningView(moved);
-    const restoredView = buildPlanningView(restored);
+    const movedView = buildPlanningView(moved);
 
-    expect(changedView.changedCommittedCandidates.find((card) => card.block.id === 'committed-1')).toBeDefined();
-    expect(restoredView.changedCommittedCandidates.find((card) => card.block.id === 'committed-1')).toBeUndefined();
+    expect(movedView.changedCommittedCandidates.find((card) => card.block.id === 'committed-1')).toBeUndefined();
+    expect(
+      movedView.lanes
+        .flatMap((lane) => lane.placedBlocks)
+        .find((card) => card.block.id === 'committed-1')?.visualState
+    ).toBe('uncommitted');
   });
 
   it('keeps side-by-side lane ordering stable when extents are resized', () => {

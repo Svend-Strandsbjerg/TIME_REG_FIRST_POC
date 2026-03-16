@@ -82,7 +82,7 @@ The mock inbound source now seeds representative demo data so the board is immed
   - Templates are reusable in candidates, default to 30 minutes, and render as label-only before placement.
 - **Changed committed entries (red semantics):**
   - Not seeded at startup.
-  - This section appears only after real committed entries are changed through board interactions.
+  - This section appears only when committed entries are displaced from the board (for example moved to unplanned) and need restoration.
 
 ## Foundation runtime ownership in this repo
 
