@@ -99,7 +99,7 @@ describe('board queries', () => {
     const changedView = buildPlanningView(moved);
     const restoredView = buildPlanningView(restored);
 
-    expect(changedView.changedCommittedCandidates.find((card) => card.block.id === 'committed-1')).toBeUndefined();
+    expect(changedView.changedCommittedCandidates.find((card) => card.block.id === 'committed-1')).toBeDefined();
     expect(restoredView.changedCommittedCandidates.find((card) => card.block.id === 'committed-1')).toBeUndefined();
   });
 

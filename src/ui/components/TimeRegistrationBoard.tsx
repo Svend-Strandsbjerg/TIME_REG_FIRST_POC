@@ -42,9 +42,6 @@ export const TimeRegistrationBoard = ({
       <section className="board-section">
         <header className="summary">
           <h1>Weekly Timesheet Planning</h1>
-          <p>
-            Planned: {board.summary.plannedBlocks} | Unplanned: {board.summary.unplannedBlocks}
-          </p>
           <label className="toggle-control">
             <input type="checkbox" checked={hideWeekends} onChange={(event) => onToggleHideWeekends(event.target.checked)} />
             <span>Hide weekends</span>

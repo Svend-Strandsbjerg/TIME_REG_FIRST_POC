@@ -74,12 +74,34 @@ const withParallelLayout = (placedBlocks: TimeBlockCardView[]): TimeBlockCardVie
   }
 
   return groups.flatMap((group) => {
-    const stableColumnOrder = group.slice().sort((a, b) => a.block.id.localeCompare(b.block.id));
+    const usedColumns = new Set<number>();
+    const assignments = new Map<string, number>();
 
-    return stableColumnOrder.map((card, index) => ({
+    const ordered = group
+      .slice()
+      .sort(
+        (a, b) =>
+          (a.startTime ?? '').localeCompare(b.startTime ?? '') ||
+          ((a.topOffsetMinutes ?? 0) - (b.topOffsetMinutes ?? 0)) ||
+          a.block.id.localeCompare(b.block.id)
+      );
+
+    for (const card of ordered) {
+      const candidateColumn = typeof card.layoutColumn === 'number' ? card.layoutColumn : 0;
+      let nextColumn = candidateColumn;
+      while (usedColumns.has(nextColumn)) {
+        nextColumn += 1;
+      }
+      assignments.set(card.block.id, nextColumn);
+      usedColumns.add(nextColumn);
+    }
+
+    const columnCount = Math.max(ordered.length, ...Array.from(assignments.values()).map((column) => column + 1));
+
+    return ordered.map((card) => ({
       ...card,
-      layoutColumn: index,
-      layoutColumnCount: stableColumnOrder.length
+      layoutColumn: assignments.get(card.block.id) ?? 0,
+      layoutColumnCount: columnCount
     }));
   });
 };
@@ -152,7 +174,7 @@ export const buildPlanningView = (state: BoardState): WeeklyBoardView => {
     .map((block) => toCandidateCard(block));
 
   const changedCommittedCandidates = state.placements
-    .filter((placement) => placement.laneId === 'unplanned' && isCommittedPlacementChangedFromBaseline(state, placement.blockId))
+    .filter((placement) => isCommittedPlacementChangedFromBaseline(state, placement.blockId))
     .map((placement) => blockLookup.get(placement.blockId))
     .filter((block): block is TimeBlock => block !== undefined && block.state === 'committed')
     .map((block) => ({
