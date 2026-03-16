@@ -81,10 +81,8 @@ The mock inbound source now seeds representative demo data so the board is immed
   - PSP-3007 Support / incident handling
   - Templates are reusable in candidates, default to 30 minutes, and render as label-only before placement.
 - **Changed committed entries (red semantics):**
-  - Baseline Monday 08:30-09:30 now moved
-  - Baseline Tuesday 10:00-11:00 now removed to unplanned
-  - Baseline Thursday 14:00-15:30 now moved
-  - Seeded as committed-baseline blocks (`committedPlacement`) and then intentionally moved/removed during startup initialization using normal board commands, so queue update/delete semantics and baseline restoration are immediately testable.
+  - Not seeded at startup.
+  - This section appears only after real committed entries are changed through board interactions.
 
 ## Foundation runtime ownership in this repo
 

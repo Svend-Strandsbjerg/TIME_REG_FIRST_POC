@@ -1,4 +1,3 @@
-import { placeBlockOnLane, returnBlockToPool } from '../../core/application/board-service';
 import type { BoardState, TimeBlock } from '../../core/domain/board-types';
 
 const STARTUP_DEMO_IMPORTED_BLOCKS: TimeBlock[] = [
@@ -53,51 +52,6 @@ const STARTUP_DEMO_TEMPLATE_BLOCKS: TimeBlock[] = [
   }
 ];
 
-const STARTUP_DEMO_COMMITTED_BLOCKS: TimeBlock[] = [
-  {
-    id: 'demo-committed-move',
-    title: 'Demo committed: architecture review (moved)',
-    source: 'mock-api',
-    state: 'committed',
-    extentMinutes: 60,
-    metadata: {
-      committedPlacement: {
-        laneId: 'lane-monday',
-        startTime: '08:30',
-        extentMinutes: 60
-      }
-    }
-  },
-  {
-    id: 'demo-committed-remove',
-    title: 'Demo committed: customer follow-up (removed)',
-    source: 'mock-api',
-    state: 'committed',
-    extentMinutes: 60,
-    metadata: {
-      committedPlacement: {
-        laneId: 'lane-tuesday',
-        startTime: '10:00',
-        extentMinutes: 60
-      }
-    }
-  },
-  {
-    id: 'demo-committed-reschedule',
-    title: 'Demo committed: support triage (rescheduled)',
-    source: 'mock-api',
-    state: 'committed',
-    extentMinutes: 90,
-    metadata: {
-      committedPlacement: {
-        laneId: 'lane-thursday',
-        startTime: '14:00',
-        extentMinutes: 90
-      }
-    }
-  }
-];
-
 const mergeMissingBlocks = (blocks: TimeBlock[], required: TimeBlock[]): TimeBlock[] => {
   const existingIds = new Set(blocks.map((block) => block.id));
   const missingBlocks = required.filter((block) => !existingIds.has(block.id));
@@ -106,22 +60,7 @@ const mergeMissingBlocks = (blocks: TimeBlock[], required: TimeBlock[]): TimeBlo
 
 export const withSeededStartupBlocks = (blocks: TimeBlock[]): TimeBlock[] => {
   const withImported = mergeMissingBlocks(blocks, STARTUP_DEMO_IMPORTED_BLOCKS);
-  const withTemplates = mergeMissingBlocks(withImported, STARTUP_DEMO_TEMPLATE_BLOCKS);
-  return mergeMissingBlocks(withTemplates, STARTUP_DEMO_COMMITTED_BLOCKS);
+  return mergeMissingBlocks(withImported, STARTUP_DEMO_TEMPLATE_BLOCKS);
 };
 
-export const applySeededDemoState = (state: BoardState): BoardState => {
-  const moveCandidateId = state.blocks.some((block) => block.id === 'demo-committed-move')
-    ? 'demo-committed-move'
-    : 'block-activity-8-instance-8';
-  const removeCandidateId = state.blocks.some((block) => block.id === 'demo-committed-remove')
-    ? 'demo-committed-remove'
-    : 'block-activity-9-instance-9';
-  const rescheduleCandidateId = state.blocks.some((block) => block.id === 'demo-committed-reschedule')
-    ? 'demo-committed-reschedule'
-    : 'block-activity-10-instance-10';
-
-  const movedMonday = placeBlockOnLane(state, moveCandidateId, 'lane-monday', '10:00');
-  const removedTuesday = returnBlockToPool(movedMonday, removeCandidateId);
-  return placeBlockOnLane(removedTuesday, rescheduleCandidateId, 'lane-friday', '15:30');
-};
+export const applySeededDemoState = (state: BoardState): BoardState => state;
