@@ -1,5 +1,5 @@
 import type { TimeBlockCardView } from '../../core/application/board-queries';
-import { readBlockPayload } from '../adapters/dnd-adapter';
+import { hasBlockPayload, readBlockPayload } from '../adapters/dnd-adapter';
 import { TimeBlockCard } from './TimeBlockCard';
 
 type Props = {
@@ -26,7 +26,14 @@ export const AvailableBlocksPanel = ({
   return (
     <section
       className="panel"
-      onDragOver={(event) => event.preventDefault()}
+      onDragOver={(event) => {
+        if (!hasBlockPayload(event)) {
+          return;
+        }
+
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+      }}
       onDrop={(event) => {
         event.preventDefault();
         const payload = readBlockPayload(event);
