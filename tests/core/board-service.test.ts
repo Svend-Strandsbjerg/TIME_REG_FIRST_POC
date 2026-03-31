@@ -69,10 +69,9 @@ describe('board-service queue simulation', () => {
       operation: 'create',
       payload: {
         blockId: 'b2',
-        dayKey: 'tuesday',
+        date: '2026-03-31',
         startTime: '10:00',
-        endTime: '12:00',
-        interval: '10:00 - 12:00'
+        endTime: '12:00'
       }
     });
   });
@@ -84,10 +83,9 @@ describe('board-service queue simulation', () => {
     expect(movedCommitted.queue.items.find((item) => item.payload.blockId === 'b1')).toMatchObject({
       operation: 'update',
       payload: {
-        dayKey: 'tuesday',
+        date: '2026-03-31',
         startTime: '10:00',
-        endTime: '11:00',
-        interval: '10:00 - 11:00'
+        endTime: '11:00'
       }
     });
   });
@@ -166,10 +164,9 @@ describe('board-service queue simulation', () => {
     expect(item).toMatchObject({
       operation: 'create',
       payload: {
-        dayKey: 'tuesday',
+        date: '2026-03-31',
         startTime: '09:00',
-        endTime: '10:30',
-        interval: '09:00 - 10:30'
+        endTime: '10:30'
       }
     });
   });
@@ -226,12 +223,16 @@ describe('board-service queue simulation', () => {
     const queueItem = placed.queue.items[0];
 
     expect(queueItem?.payload).toMatchObject({
+      userExternalId: 'demo.worker',
+      companyCode: '1010',
       blockId: 'b2',
       title: 'Internal workshop',
-      dayKey: 'tuesday',
-      startTime: '10:00'
+      date: '2026-03-31',
+      startTime: '10:00',
+      action: 'create'
     });
     expect(queueItem).not.toHaveProperty('scheduling');
+    expect(queueItem?.payload).not.toHaveProperty('TimeSheetOperation');
     expect(queueItem?.routing).toMatchObject({
       payloadType: 'time-registration-entry',
       adapterKey: 'sap-time-entry',

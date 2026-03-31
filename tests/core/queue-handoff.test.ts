@@ -23,13 +23,15 @@ describe('queue handoff', () => {
       queueContextId: 'queue-preview-1',
       operation: 'create',
       payload: {
+        userExternalId: 'demo.worker',
+        companyCode: '1010',
+        date: '2026-03-30',
+        action: 'create',
         blockId: 'block-1',
         title: 'Customer workshop',
-        dayKey: 'monday',
         startTime: '08:30',
         endTime: '10:00',
-        interval: '08:30 - 10:00',
-        extentMinutes: 90
+        hours: 1.5
       },
       routing: {
         payloadType: 'time-registration-entry',

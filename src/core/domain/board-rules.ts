@@ -44,12 +44,12 @@ const buildSlot = (laneLookup: Map<DayLaneId, DayLane>, laneId: DayLaneId, start
 export const formatInterval = (startTime: TimeOfDay, endTime: TimeOfDay): string => `${startTime} - ${endTime}`;
 
 const buildQueueItemFromFoundation = (queueId: QueueId, block: TimeBlock, slot: PlacementSlot, operation: QueueOperation, reason: string): QueueItem => {
-  const payload = buildTimeRegistrationQueuePayload(block, { dayKey: slot.dayKey, startTime: slot.timeSlot });
+  const payload = buildTimeRegistrationQueuePayload(block, { dayKey: slot.dayKey, startTime: slot.timeSlot }, operation);
   const routing = buildQueueRoutingHints(queueId, payload, operation);
 
   const queueItemId = createQueueItemId({
     queueId,
-    seed: `${payload.blockId}:${payload.dayKey}:${payload.startTime}:${operation}`
+    seed: `${payload.blockId}:${payload.date}:${payload.startTime}:${operation}`
   });
 
   try {
