@@ -21,13 +21,13 @@ export const QueueLogPanel = ({ queue }: Props) => {
       <ul className="queue-items">
         {newestFirstItems.map((item) => (
           <li key={item.id} className="queue-item">
-            <strong>{item.title}</strong>
+            <strong>{item.payload.title}</strong>
             <span>queue ID: {item.queueId}</span>
             <span>item ID: {item.id}</span>
-            <span>day: {item.dayKey}</span>
-            <span>interval: {item.interval}</span>
+            <span>day: {item.payload.dayKey}</span>
+            <span>interval: {item.payload.interval}</span>
             <span>operation: {item.operation}</span>
-            <small>{item.reason}</small>
+            <small>{item.metadata.reason}</small>
           </li>
         ))}
       </ul>

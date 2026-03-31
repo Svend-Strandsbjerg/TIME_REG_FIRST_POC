@@ -49,7 +49,7 @@ This separation is key for portability and future queue payload evolution.
 ## Queue simulation strategy
 
 - One deterministic queue ID (`queue-<hash>`, status `paused`)
-- Items include real scheduling coordinates (day + start time)
+- Items carry a solution payload (time-registration fields) plus explicit routing metadata
 - Operations: `create`/`update`/`delete`
 - Extent changes are already represented in state, enabling future queue payload inclusion without changing the model shape
 - Extent changes for committed items are meaningful queue deltas when baseline extent metadata exists
@@ -69,7 +69,7 @@ The planner allows concurrent placements. Core projections annotate each placed 
 ## Identifier strategy
 
 - Queue IDs are deterministic identifiers generated from a stable scope hash (`createQueueId`).
-- Queue item IDs are deterministic identifiers generated from queue ID + block ID + operation + day + start time.
+- Queue item IDs are deterministic identifiers generated from queue ID + explicit seed values from the POC.
 - Labels/titles remain human-readable fields and are not used as IDs.
 
 

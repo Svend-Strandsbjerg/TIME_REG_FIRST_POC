@@ -53,17 +53,34 @@ export type PlacedBlock = {
 
 export type QueueOperation = 'create' | 'update' | 'delete';
 
-export type QueueItem = {
-  id: QueueItemId;
-  queueId: QueueId;
+export type TimeRegistrationQueuePayload = {
   blockId: TimeBlockId;
   title: string;
   dayKey: DayKey;
   startTime: TimeOfDay;
   endTime: TimeOfDay;
   interval: string;
+  extentMinutes: number;
+  source: TimeBlock['source'];
+};
+
+export type QueueRoutingHints = {
+  payloadType: 'time-registration-entry';
+  adapterKey: 'sap-time-entry';
+  targetSystem: 'sap';
   operation: QueueOperation;
-  reason: string;
+  idempotencyKey: string;
+};
+
+export type QueueItem = {
+  id: QueueItemId;
+  queueId: QueueId;
+  operation: QueueOperation;
+  payload: TimeRegistrationQueuePayload;
+  metadata: {
+    reason: string;
+  };
+  routing: QueueRoutingHints;
 };
 
 export type Queue = {

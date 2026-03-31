@@ -66,12 +66,14 @@ describe('board-service queue simulation', () => {
     expect(placed.queue.items).toHaveLength(1);
     expect(placed.queue.items[0]).toMatchObject({
       queueId: placed.queue.id,
-      blockId: 'b2',
-      dayKey: 'tuesday',
-      startTime: '10:00',
-      endTime: '12:00',
-      interval: '10:00 - 12:00',
-      operation: 'create'
+      operation: 'create',
+      payload: {
+        blockId: 'b2',
+        dayKey: 'tuesday',
+        startTime: '10:00',
+        endTime: '12:00',
+        interval: '10:00 - 12:00'
+      }
     });
   });
 
@@ -79,12 +81,14 @@ describe('board-service queue simulation', () => {
     const board = createBoardWeek(blocks);
     const movedCommitted = placeBlockOnLane(board, 'b1', 'lane-tuesday', '10:00');
 
-    expect(movedCommitted.queue.items.find((item) => item.blockId === 'b1')).toMatchObject({
-      dayKey: 'tuesday',
-      startTime: '10:00',
-      endTime: '11:00',
-      interval: '10:00 - 11:00',
-      operation: 'update'
+    expect(movedCommitted.queue.items.find((item) => item.payload.blockId === 'b1')).toMatchObject({
+      operation: 'update',
+      payload: {
+        dayKey: 'tuesday',
+        startTime: '10:00',
+        endTime: '11:00',
+        interval: '10:00 - 11:00'
+      }
     });
   });
 
@@ -102,7 +106,7 @@ describe('board-service queue simulation', () => {
       .find((lane) => lane.lane.id === 'lane-monday')
       ?.placedBlocks.find((card) => card.block.id === 'b1');
 
-    expect(restored.queue.items.find((item) => item.blockId === 'b1')).toBeUndefined();
+    expect(restored.queue.items.find((item) => item.payload.blockId === 'b1')).toBeUndefined();
     expect(restoredCard?.visualState).toBe('committed');
   });
 
@@ -156,15 +160,17 @@ describe('board-service queue simulation', () => {
   it('placing an imported candidate creates a queue create item and keeps imported state', () => {
     const board = createBoardWeek(blocks);
     const placed = placeBlockOnLane(board, 'b3', 'lane-tuesday', '09:00');
-    const item = placed.queue.items.find((candidate) => candidate.blockId === 'b3');
+    const item = placed.queue.items.find((candidate) => candidate.payload.blockId === 'b3');
 
     expect(placed.blocks.find((block) => block.id === 'b3')?.state).toBe('imported');
     expect(item).toMatchObject({
-      dayKey: 'tuesday',
-      startTime: '09:00',
-      endTime: '10:30',
-      interval: '09:00 - 10:30',
-      operation: 'create'
+      operation: 'create',
+      payload: {
+        dayKey: 'tuesday',
+        startTime: '09:00',
+        endTime: '10:30',
+        interval: '09:00 - 10:30'
+      }
     });
   });
 
@@ -212,5 +218,25 @@ describe('board-service queue simulation', () => {
     const updated = updateBlockDescription(board, 'b3', 'Updated planner description');
 
     expect(updated.blocks.find((block) => block.id === 'b3')?.metadata?.description).toBe('Updated planner description');
+  });
+
+  it('queue item payload is solution-specific and does not use legacy scheduling fields', () => {
+    const board = createBoardWeek(blocks);
+    const placed = placeBlockOnLane(board, 'b2', 'lane-tuesday', '10:00');
+    const queueItem = placed.queue.items[0];
+
+    expect(queueItem?.payload).toMatchObject({
+      blockId: 'b2',
+      title: 'Internal workshop',
+      dayKey: 'tuesday',
+      startTime: '10:00'
+    });
+    expect(queueItem).not.toHaveProperty('scheduling');
+    expect(queueItem?.routing).toMatchObject({
+      payloadType: 'time-registration-entry',
+      adapterKey: 'sap-time-entry',
+      targetSystem: 'sap',
+      operation: 'create'
+    });
   });
 });
