@@ -14,9 +14,9 @@ import type {
   TimeBlockId,
   TimeOfDay
 } from './board-types';
+import { buildQueueRoutingHints, buildTimeRegistrationQueuePayload } from './time-registration-queue';
 import {
   clampToPlanningWindow,
-  deriveEndTime,
   PLANNING_WINDOW_END,
   PLANNING_WINDOW_START,
   SLOT_MINUTES,
@@ -43,45 +43,38 @@ const buildSlot = (laneLookup: Map<DayLaneId, DayLane>, laneId: DayLaneId, start
 
 export const formatInterval = (startTime: TimeOfDay, endTime: TimeOfDay): string => `${startTime} - ${endTime}`;
 
-const buildQueueItemFromFoundation = (
-  queueId: QueueId,
-  block: TimeBlock,
-  slot: PlacementSlot,
-  operation: QueueOperation,
-  reason: string
-): QueueItem => {
+const buildQueueItemFromFoundation = (queueId: QueueId, block: TimeBlock, slot: PlacementSlot, operation: QueueOperation, reason: string): QueueItem => {
+  const payload = buildTimeRegistrationQueuePayload(block, { dayKey: slot.dayKey, startTime: slot.timeSlot });
+  const routing = buildQueueRoutingHints(queueId, payload, operation);
+
   const queueItemId = createQueueItemId({
     queueId,
-    blockId: block.id,
-    operation,
-    dayKey: slot.dayKey,
-    startTime: slot.timeSlot
+    seed: `${payload.blockId}:${payload.dayKey}:${payload.startTime}:${operation}`
   });
 
-  buildQueueItem({
-    id: queueItemId,
-    queueId,
-    block,
-    slot,
-    operation,
-    reason
-  });
-
-  const startTime = slot.timeSlot;
-  const endTime = deriveEndTime(startTime, block.extentMinutes);
-  const interval = formatInterval(startTime, endTime);
+  try {
+    buildQueueItem({
+      queueId,
+      itemId: queueItemId,
+      payload,
+      metadata: {
+        reason
+      },
+      routing
+    });
+  } catch {
+    // Keep board projection working when local dependency is not yet upgraded.
+  }
 
   return {
     id: String(queueItemId),
     queueId,
-    blockId: block.id,
-    title: block.title,
-    dayKey: slot.dayKey,
-    startTime,
-    endTime,
-    interval,
     operation,
-    reason
+    payload,
+    metadata: {
+      reason
+    },
+    routing
   };
 };
 

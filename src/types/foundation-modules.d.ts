@@ -50,35 +50,20 @@ declare module '@strandsbjerg/async-integration-foundation' {
   export const createQueueId: (scope?: string) => string;
   export const createQueueItemId: (request: {
     queueId: string;
-    blockId: string;
-    operation: 'create' | 'update' | 'delete';
-    dayKey: string;
-    startTime: string;
+    seed?: string;
   }) => string;
   export const buildQueueItem: (request: {
-    id: string;
     queueId: string;
-    block: {
-      id: string;
-      title: string;
-      extentMinutes: number;
-    };
-    slot: {
-      dayKey: string;
-      timeSlot: string;
-    };
-    operation: 'create' | 'update' | 'delete';
-    reason: string;
+    itemId?: string;
+    payload: Record<string, unknown>;
+    metadata?: Record<string, unknown>;
+    routing?: Record<string, unknown>;
   }) => {
     id: string;
     queueId: string;
-    blockId: string;
-    title: string;
-    dayKey: string;
-    startTime: string;
-    endTime: string;
-    interval: string;
     operation: 'create' | 'update' | 'delete';
-    reason: string;
+    payload: Record<string, unknown>;
+    metadata: Record<string, unknown>;
+    routing: Record<string, unknown>;
   };
 }

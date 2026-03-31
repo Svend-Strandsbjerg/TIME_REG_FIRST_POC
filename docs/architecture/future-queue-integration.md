@@ -7,7 +7,7 @@ The current phase projects queue items from time-aware placements:
 - one queue (`planning-queue`)
 - status `paused`
 - operations `create` / `update` / `delete`
-- queue item includes real scheduling coordinates (`dayKey`, `startTime`, derived `endTime`, `interval`)
+- queue item stores a time-registration payload (`dayKey`, `startTime`, derived `endTime`, `interval`) plus explicit routing hints
 
 ## Current mapping behavior
 
@@ -28,7 +28,7 @@ This avoids duplicate duration fields and keeps contracts aligned with foundatio
 
 ## Next integration handoff
 
-`Block(state, extent) + Placement(day, start) -> queue projection -> adapter mapping -> ASYNC_INTEGRATION_FOUNDATION`
+`Block(state, extent) + Placement(day, start) -> time-registration payload projection -> generic queue item -> adapter mapping`
 
 ## Forward compatibility
 
@@ -59,5 +59,5 @@ Extent changes are not yet emitted as distinct queue semantics in this POC, but 
 
 - Queue IDs now come from `createQueueId` in `ASYNC_INTEGRATION_FOUNDATION`.
 - Queue item IDs now come from `createQueueItemId` in `ASYNC_INTEGRATION_FOUNDATION`.
-- Queue item payload construction now comes from `buildQueueItem` in `ASYNC_INTEGRATION_FOUNDATION`.
+- Queue item payload is solution-specific (time registration) and passed as opaque payload to `buildQueueItem` in `ASYNC_INTEGRATION_FOUNDATION`.
 - Planning intent (`create`/`update`/`delete`) still originates in the POC from board/baseline semantics.

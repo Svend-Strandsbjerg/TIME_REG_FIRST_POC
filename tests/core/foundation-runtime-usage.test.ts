@@ -11,18 +11,14 @@ vi.mock('@strandsbjerg/block-engine-foundation', () => ({
 
 vi.mock('@strandsbjerg/async-integration-foundation', () => ({
   createQueueId: vi.fn(() => 'queue-from-foundation'),
-  createQueueItemId: vi.fn(({ blockId }: any) => `queue-item-${blockId}`),
-  buildQueueItem: vi.fn(({ id, queueId, block, slot, operation, reason }: any) => ({
-    id,
+  createQueueItemId: vi.fn(({ seed }: any) => `queue-item-${seed.split(':')[0]}`),
+  buildQueueItem: vi.fn(({ itemId, queueId, payload, metadata, routing }: any) => ({
+    id: itemId,
     queueId,
-    blockId: block.id,
-    title: block.title,
-    dayKey: slot.dayKey,
-    startTime: slot.timeSlot,
-    endTime: slot.timeSlot,
-    interval: `${slot.timeSlot} - ${slot.timeSlot}`,
-    operation,
-    reason
+    operation: routing.operation,
+    payload,
+    metadata,
+    routing
   }))
 }));
 
