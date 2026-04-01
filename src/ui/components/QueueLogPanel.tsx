@@ -1,4 +1,5 @@
 import type { WeeklyBoardView } from '../../core/application/board-queries';
+import { CommitPreviewPanel } from './CommitPreviewPanel';
 
 type Props = {
   queue: WeeklyBoardView['queue'];
@@ -25,12 +26,15 @@ export const QueueLogPanel = ({ queue }: Props) => {
             <span>queue ID: {item.queueId}</span>
             <span>item ID: {item.id}</span>
             <span>date: {item.payload.date}</span>
-            <span>interval: {item.payload.startTime} - {item.payload.endTime}</span>
+            <span>
+              interval: {item.payload.startTime} - {item.payload.endTime}
+            </span>
             <span>operation: {item.operation}</span>
             <small>{item.metadata.reason}</small>
           </li>
         ))}
       </ul>
+      <CommitPreviewPanel queueItems={queue.items} />
     </aside>
   );
 };
