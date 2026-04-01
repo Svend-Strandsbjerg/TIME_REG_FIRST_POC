@@ -7,14 +7,14 @@ import {
   resizeBlockFromBottom,
   resizeBlockFromTop,
   returnBlockToPool,
-  updateBlockDescription
+  updateBlockDetails
 } from '../core/application/board-service';
 import type { BoardState } from '../core/domain/board-types';
 import { toQueueReadyEntries } from '../integration/async/queue-handoff';
 import { SAPWorkforceBlockSource } from '../integration/inbound/sap-workforce-block-source';
 import { applySeededDemoState, withSeededStartupBlocks } from '../integration/inbound/seeded-demo-state';
 import { TimeRegistrationBoard } from '../ui/components/TimeRegistrationBoard';
-import { DescriptionModal } from '../ui/components/DescriptionModal';
+import { DescriptionModal, type BlockDetailsDraft } from '../ui/components/DescriptionModal';
 
 type DescriptionEditorState = {
   blockId: string;
@@ -92,6 +92,26 @@ export const App = () => {
     [descriptionEditor?.blockId, state]
   );
 
+  const blockDraft = useMemo<BlockDetailsDraft>(
+    () => ({
+      description: typeof selectedBlock?.metadata?.description === 'string' ? selectedBlock.metadata.description : '',
+      taskType: typeof selectedBlock?.metadata?.taskType === 'string' ? selectedBlock.metadata.taskType : '',
+      taskComponent: typeof selectedBlock?.metadata?.taskComponent === 'string' ? selectedBlock.metadata.taskComponent : '',
+      activityType: typeof selectedBlock?.metadata?.activityType === 'string' ? selectedBlock.metadata.activityType : '',
+      billingControlCategory:
+        typeof selectedBlock?.metadata?.billingControlCategory === 'string' ? selectedBlock.metadata.billingControlCategory : '',
+      overtimeCategory: typeof selectedBlock?.metadata?.overtimeCategory === 'string' ? selectedBlock.metadata.overtimeCategory : '',
+      wbsElement:
+        typeof selectedBlock?.metadata?.wbsElement === 'string'
+          ? selectedBlock.metadata.wbsElement
+          : typeof selectedBlock?.metadata?.pspElement === 'string'
+            ? selectedBlock.metadata.pspElement
+            : '',
+      internalOrder: typeof selectedBlock?.metadata?.internalOrder === 'string' ? selectedBlock.metadata.internalOrder : ''
+    }),
+    [selectedBlock]
+  );
+
   if (!state || !planningView) {
     return <p>Loading planning board...</p>;
   }
@@ -123,13 +143,11 @@ export const App = () => {
       <DescriptionModal
         isOpen={Boolean(descriptionEditor)}
         blockTitle={selectedBlock?.title}
-        initialDescription={typeof selectedBlock?.metadata?.description === 'string' ? selectedBlock.metadata.description : ''}
+        initialDraft={blockDraft}
         onCancel={() => setDescriptionEditor(null)}
-        onSave={(description) => {
+        onSave={(draft) => {
           if (descriptionEditor) {
-            setState((current) =>
-              current ? updateBlockDescription(current, descriptionEditor.blockId, description) : current
-            );
+            setState((current) => (current ? updateBlockDetails(current, descriptionEditor.blockId, draft) : current));
           }
           setDescriptionEditor(null);
         }}

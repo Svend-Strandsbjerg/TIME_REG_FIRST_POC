@@ -7,7 +7,8 @@ import {
   resizeBlockFromBottom,
   resizeBlockFromTop,
   returnBlockToPool,
-  updateBlockDescription
+  updateBlockDescription,
+  updateBlockDetails
 } from '../../src/core/application/board-service';
 import { deriveEndTime } from '../../src/core/domain/time-slot';
 import type { TimeBlock } from '../../src/core/domain/board-types';
@@ -215,6 +216,49 @@ describe('board-service queue simulation', () => {
     const updated = updateBlockDescription(board, 'b3', 'Updated planner description');
 
     expect(updated.blocks.find((block) => block.id === 'b3')?.metadata?.description).toBe('Updated planner description');
+  });
+
+  it('block detail editor updates additional classification fields on block metadata', () => {
+    const board = createBoardWeek(blocks);
+    const updated = updateBlockDetails(board, 'b3', {
+      description: 'Updated planner description',
+      taskType: 'TASK',
+      taskComponent: 'NORMAL',
+      activityType: 'DEV',
+      billingControlCategory: 'B1',
+      overtimeCategory: 'OT1',
+      wbsElement: 'PSP-9009',
+      internalOrder: 'ORD-123'
+    });
+
+    const metadata = updated.blocks.find((block) => block.id === 'b3')?.metadata as Record<string, unknown>;
+
+    expect(metadata.description).toBe('Updated planner description');
+    expect(metadata.taskType).toBe('TASK');
+    expect(metadata.taskComponent).toBe('NORMAL');
+    expect(metadata.activityType).toBe('DEV');
+    expect(metadata.billingControlCategory).toBe('B1');
+    expect(metadata.overtimeCategory).toBe('OT1');
+    expect(metadata.wbsElement).toBe('PSP-9009');
+    expect(metadata.internalOrder).toBe('ORD-123');
+  });
+
+  it('defaults task component onto PSP/template blocks during board initialization', () => {
+    const board = createBoardWeek([
+      {
+        id: 'template-1',
+        title: 'PSP template',
+        extentMinutes: 30,
+        source: 'mock-api',
+        state: 'template',
+        metadata: {
+          pspElement: 'PSP-1001'
+        }
+      }
+    ]);
+
+    const metadata = board.blocks[0]?.metadata as Record<string, unknown>;
+    expect(metadata.taskComponent).toBe('NORMAL');
   });
 
   it('queue item payload is solution-specific and does not use legacy scheduling fields', () => {
