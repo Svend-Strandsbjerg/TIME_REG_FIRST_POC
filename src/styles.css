@@ -293,6 +293,35 @@ body {
   color: #b91c1c;
 }
 
+.send-state--validation-error {
+  color: #b45309;
+}
+
+.validation-errors {
+  margin-top: 0.5rem;
+  border: 1px solid #fed7aa;
+  background: #fff7ed;
+  border-radius: 6px;
+  padding: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.validation-errors p {
+  margin: 0 0 0.25rem;
+  font-weight: 600;
+}
+
+.validation-errors ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.send-error-detail {
+  margin: 0.35rem 0 0;
+  color: #b91c1c;
+  font-size: 0.8rem;
+}
+
 .modal--payload-preview {
   width: min(900px, calc(100vw - 2rem));
 }

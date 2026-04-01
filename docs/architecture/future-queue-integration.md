@@ -70,3 +70,16 @@ Extent changes are not yet emitted as distinct queue semantics in this POC, but 
 - Queue item IDs now come from `createQueueItemId` in `ASYNC_INTEGRATION_FOUNDATION`.
 - Queue item payload is solution-specific (time registration) and passed as opaque payload to `buildQueueItem` in `ASYNC_INTEGRATION_FOUNDATION`.
 - Planning intent (`create`/`update`/`delete`) still originates in the POC from board/baseline semantics.
+
+
+## Outbound pre-submit validation boundary (POC)
+
+A dedicated final gate now runs immediately before the simulated SAP send path:
+
+- `prepareCommitRecordForSubmission(record)` in `src/core/application/commit-submission.ts` is the single outbound entry point.
+- It validates each mapped `WorkforceTimesheetRequest` entry and returns explicit issues when records are not send-ready.
+- Validation currently checks required identity/date fields, action/operation shape, task component, action-dependent hours/accounting target rules, update/delete `TimeSheetRecord`, and basic request structure completeness.
+- If validation passes, the same `CommitRecord.entries` used by Commit Preview are returned unchanged for submission handoff (single source path, no remap).
+- The UI `Send to SAP` action now blocks simulated send when validation fails and surfaces issue lists per commit record.
+
+This boundary is the final controlled gate before any future real SAP POST implementation.
