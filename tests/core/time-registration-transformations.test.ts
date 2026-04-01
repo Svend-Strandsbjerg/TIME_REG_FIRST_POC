@@ -111,6 +111,30 @@ describe('time registration transformations', () => {
     expect(payload.taskComponent).toBe(DEFAULT_TIME_REGISTRATION_TASK_COMPONENT);
   });
 
+  it('prefers metadata.note over description for payload note', () => {
+    const payload = mapBlockToTimeRegistrationPayload(
+      {
+        ...block,
+        metadata: {
+          ...block.metadata,
+          description: 'Description fallback',
+          note: 'Planner note'
+        }
+      },
+      { dayKey: 'monday', startTime: '09:00', endTime: '10:30' },
+      {
+        action: 'create',
+        userContext: {
+          userExternalId: 'person-77',
+          companyCode: '1710',
+          weekStartDate: '2026-03-30'
+        }
+      }
+    );
+
+    expect(payload.note).toBe('Planner note');
+  });
+
   it('maps payload into WorkforceTimesheetRequest with operation mapping', () => {
     const createRequest = mapTimeRegistrationPayloadToWorkforceTimesheetRequest({
       userExternalId: 'person-77',

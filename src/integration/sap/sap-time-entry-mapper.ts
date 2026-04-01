@@ -44,28 +44,33 @@ const toOperation = (action: TimeRegistrationPayload['action']): WorkforceTimesh
 
 export const mapTimeRegistrationPayloadToWorkforceTimesheetRequest = (
   payload: TimeRegistrationPayload
-): WorkforceTimesheetRequest => ({
-  PersonWorkAgreementExternalID: payload.userExternalId,
-  CompanyCode: payload.companyCode,
-  TimeSheetRecord: payload.sapTimeSheetRecord,
-  TimeSheetDate: payload.date,
-  TimeSheetOperation: toOperation(payload.action),
-  TimeSheetIsReleasedOnSave: payload.releaseOnSave,
-  TimeSheetIsExecutedInTestRun: payload.testRun,
-  TimeSheetDataFields: {
-    WBSElement: payload.wbsElement,
-    InternalOrder: payload.internalOrder,
-    ActivityType: payload.activityType,
-    WorkItem: payload.workItem,
-    BillingControlCategory: payload.billingControlCategory,
-    TimeSheetTaskType: payload.taskType,
-    TimeSheetTaskLevel: payload.taskLevel,
-    TimeSheetTaskComponent: payload.taskComponent,
-    TimeSheetNote: payload.note,
-    RecordedHours: payload.hours,
-    RecordedQuantity: payload.quantity,
-    HoursUnitOfMeasure: payload.hoursUnitOfMeasure,
-    TimeSheetWrkLocCode: payload.workLocationCode,
-    TimeSheetOvertimeCategory: payload.overtimeCategory
-  }
-});
+): WorkforceTimesheetRequest => {
+  const request: WorkforceTimesheetRequest = {
+    PersonWorkAgreementExternalID: payload.userExternalId,
+    CompanyCode: payload.companyCode,
+    TimeSheetRecord: payload.sapTimeSheetRecord,
+    TimeSheetDate: payload.date,
+    TimeSheetOperation: toOperation(payload.action),
+    TimeSheetIsReleasedOnSave: payload.releaseOnSave,
+    TimeSheetIsExecutedInTestRun: payload.testRun,
+    TimeSheetDataFields: {
+      WBSElement: payload.wbsElement,
+      InternalOrder: payload.internalOrder,
+      ActivityType: payload.activityType,
+      WorkItem: payload.workItem,
+      BillingControlCategory: payload.billingControlCategory,
+      TimeSheetTaskType: payload.taskType,
+      TimeSheetTaskLevel: payload.taskLevel,
+      TimeSheetTaskComponent: payload.taskComponent,
+      TimeSheetNote: payload.note,
+      RecordedHours: payload.hours,
+      RecordedQuantity: payload.quantity,
+      HoursUnitOfMeasure: payload.hoursUnitOfMeasure,
+      TimeSheetWrkLocCode: payload.workLocationCode,
+      TimeSheetOvertimeCategory: payload.overtimeCategory
+    }
+  };
+
+  console.debug('[sap-time-entry-mapper] API payload after mapping', request);
+  return request;
+};

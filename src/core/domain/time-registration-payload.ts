@@ -97,7 +97,7 @@ export const mapBlockToTimeRegistrationPayload = (
     action: options.action,
     hours,
     wbsElement: readString(metadata, 'wbsElement') ?? readString(metadata, 'pspElement'),
-    note: readString(metadata, 'description'),
+    note: readString(metadata, 'note') ?? readString(metadata, 'description'),
     sapTimeSheetRecord: readString(metadata, 'sapTimeSheetRecord') ?? readString(metadata, 'timeSheetRecord'),
     internalOrder: readString(metadata, 'internalOrder'),
     activityType: readString(metadata, 'activityType'),
