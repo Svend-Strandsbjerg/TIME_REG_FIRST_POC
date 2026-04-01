@@ -14,6 +14,7 @@ import {
 } from '../domain/board-rules';
 import { WEEK_LANES } from '../domain/day-lane';
 import type { BoardState, DayKey, DayLaneId, PlacedBlock, TimeBlock, TimeBlockId, TimeOfDay } from '../domain/board-types';
+import { withBlockMetadataDefaults } from '../domain/block-metadata';
 import { clampToPlanningWindow } from '../domain/time-slot';
 
 type DragOrigin = 'lane' | 'candidate-imported' | 'candidate-template' | 'candidate-changed-committed';
@@ -147,7 +148,7 @@ const createSpawnedBlockFromTemplate = (state: BoardState, templateBlock: TimeBl
     }
   };
 
-  return changeBlockState(normalized, 'uncommitted') as TimeBlock;
+  return withBlockMetadataDefaults(changeBlockState(normalized, 'uncommitted') as TimeBlock);
 };
 
 const createInitialPlacements = (blocks: TimeBlock[]): PlacedBlock[] => {
@@ -203,11 +204,11 @@ export const createBoardWeek = (blocks: TimeBlock[]): BoardState => {
 
     const fallbackExtent = Number.isFinite(block.extentMinutes) && block.extentMinutes > 0 ? block.extentMinutes : defaultExtentMinutes;
 
-    return {
+    return withBlockMetadataDefaults({
       ...block,
       ...normalizedByFoundation,
       extentMinutes: block.state === 'template' ? 30 : hasValidExtent ? Number(candidateExtent) : fallbackExtent
-    };
+    });
   });
 
   return withQueueProjectionApplied({
@@ -312,17 +313,37 @@ export const autoPlaceImportedBlock = (state: BoardState, blockId: TimeBlockId):
   return placeBlockOnLane(state, blockId, laneId, importedPlacement.importedStartTime, { dragOrigin: 'candidate-imported' });
 };
 
-export const updateBlockDescription = (state: BoardState, blockId: TimeBlockId, description: string): BoardState => ({
+export const updateBlockDetails = (state: BoardState, blockId: TimeBlockId, updates: BlockDetailsUpdate): BoardState => ({
   ...state,
   blocks: state.blocks.map((block) =>
     block.id === blockId
       ? {
           ...block,
-          metadata: {
-            ...block.metadata,
-            description
-          }
+          metadata: withMergedBlockMetadata(block.metadata, updates)
         }
       : block
   )
 });
+
+type BlockDetailsUpdate = {
+  description?: string;
+  taskType?: string;
+  taskComponent?: string;
+  activityType?: string;
+  billingControlCategory?: string;
+  overtimeCategory?: string;
+  wbsElement?: string;
+  internalOrder?: string;
+};
+
+const withMergedBlockMetadata = (metadata: TimeBlock['metadata'], updates: BlockDetailsUpdate): Record<string, unknown> => {
+  const current = (metadata ?? {}) as Record<string, unknown>;
+
+  return {
+    ...current,
+    ...updates
+  };
+};
+
+export const updateBlockDescription = (state: BoardState, blockId: TimeBlockId, description: string): BoardState =>
+  updateBlockDetails(state, blockId, { description });

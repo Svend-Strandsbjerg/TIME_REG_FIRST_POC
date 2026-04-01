@@ -87,6 +87,10 @@ describe('time registration transformations', () => {
     expect(payload.sapTimeSheetRecord).toBe('TSR-9001');
     expect(payload.taskType).toBe('TASK');
     expect(payload.taskComponent).toBe('COMP-7');
+    expect(payload.activityType).toBe('DEV');
+    expect(payload.billingControlCategory).toBe('B1');
+    expect(payload.overtimeCategory).toBe('OT1');
+    expect(payload.internalOrder).toBe('ORD-55');
     expect(payload.endTime).toBe('09:30');
   });
 
@@ -135,6 +139,7 @@ describe('time registration transformations', () => {
     expect(createRequest.TimeSheetDataFields.ActivityType).toBe('DEV');
     expect(createRequest.TimeSheetDataFields.BillingControlCategory).toBe('B1');
     expect(createRequest.TimeSheetDataFields.TimeSheetOvertimeCategory).toBe('OT1');
+    expect(createRequest.TimeSheetDataFields.WBSElement).toBe('PSP-2003');
 
     const updateRequest = mapTimeRegistrationPayloadToWorkforceTimesheetRequest({
       userExternalId: 'person-77',

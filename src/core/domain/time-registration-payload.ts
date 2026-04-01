@@ -1,4 +1,5 @@
 import type { DayKey, TimeBlock, TimeOfDay } from './board-types';
+import { BLOCK_DEFAULT_TASK_COMPONENT } from './block-metadata';
 
 export type TimeRegistrationAction = 'create' | 'update' | 'delete';
 
@@ -44,7 +45,7 @@ export type TimeRegistrationUserContext = {
  * Keeps classification visible in the canonical payload instead of leaving SAP
  * payload semantics implicit.
  */
-export const DEFAULT_TIME_REGISTRATION_TASK_COMPONENT = 'NORMAL';
+export const DEFAULT_TIME_REGISTRATION_TASK_COMPONENT = BLOCK_DEFAULT_TASK_COMPONENT;
 
 const DAY_OFFSET: Record<DayKey, number> = {
   monday: 0,
