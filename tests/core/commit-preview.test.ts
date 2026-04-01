@@ -12,6 +12,14 @@ const buildQueueItem = (id: string, queueId: string, operation: QueueItem['opera
     date: '2026-03-31',
     action: operation,
     hours: 2,
+    taskType: 'TASK',
+    taskComponent: 'NORMAL',
+    activityType: 'DEV',
+    billingControlCategory: 'B1',
+    overtimeCategory: 'OT1',
+    wbsElement: 'PSP-9009',
+    internalOrder: 'ORD-123',
+    note: 'From queue payload',
     blockId: `block-${id}`,
     title: `Entry ${id}`,
     startTime: '08:00',
@@ -50,7 +58,17 @@ describe('mapQueueToCommitRecords', () => {
       PersonWorkAgreementExternalID: 'worker-1',
       CompanyCode: '1010',
       TimeSheetDate: '2026-03-31',
-      TimeSheetOperation: 'C'
+      TimeSheetOperation: 'C',
+      TimeSheetDataFields: {
+        TimeSheetTaskType: 'TASK',
+        TimeSheetTaskComponent: 'NORMAL',
+        ActivityType: 'DEV',
+        BillingControlCategory: 'B1',
+        TimeSheetOvertimeCategory: 'OT1',
+        WBSElement: 'PSP-9009',
+        InternalOrder: 'ORD-123',
+        TimeSheetNote: 'From queue payload'
+      }
     });
   });
 });

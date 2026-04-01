@@ -245,6 +245,31 @@ describe('board-service queue simulation', () => {
     expect(metadata.internalOrder).toBe('ORD-123');
   });
 
+  it('reprojects queue payload metadata when block details are updated after placement', () => {
+    const board = placeBlockOnLane(createBoardWeek(blocks), 'b3', 'lane-monday', '09:00');
+    const updated = updateBlockDetails(board, 'b3', {
+      note: 'Queue-sourced note',
+      taskType: 'TASK',
+      taskComponent: 'NORMAL',
+      activityType: 'DEV',
+      billingControlCategory: 'B1',
+      overtimeCategory: 'OT1',
+      wbsElement: 'PSP-9009',
+      internalOrder: 'ORD-123'
+    });
+
+    const queueItem = updated.queue.items.find((item) => item.payload.blockId === 'b3');
+
+    expect(queueItem?.payload.note).toBe('Queue-sourced note');
+    expect(queueItem?.payload.taskType).toBe('TASK');
+    expect(queueItem?.payload.taskComponent).toBe('NORMAL');
+    expect(queueItem?.payload.activityType).toBe('DEV');
+    expect(queueItem?.payload.billingControlCategory).toBe('B1');
+    expect(queueItem?.payload.overtimeCategory).toBe('OT1');
+    expect(queueItem?.payload.wbsElement).toBe('PSP-9009');
+    expect(queueItem?.payload.internalOrder).toBe('ORD-123');
+  });
+
   it('defaults task component onto PSP/template blocks during board initialization', () => {
     const board = createBoardWeek([
       {

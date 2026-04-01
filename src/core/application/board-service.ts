@@ -313,20 +313,22 @@ export const autoPlaceImportedBlock = (state: BoardState, blockId: TimeBlockId):
   return placeBlockOnLane(state, blockId, laneId, importedPlacement.importedStartTime, { dragOrigin: 'candidate-imported' });
 };
 
-export const updateBlockDetails = (state: BoardState, blockId: TimeBlockId, updates: BlockDetailsUpdate): BoardState => ({
-  ...state,
-  blocks: state.blocks.map((block) =>
-    block.id === blockId
-      ? {
-          ...block,
-          metadata: withMergedBlockMetadata(block.metadata, updates)
-        }
-      : block
-  )
-});
+export const updateBlockDetails = (state: BoardState, blockId: TimeBlockId, updates: BlockDetailsUpdate): BoardState =>
+  withQueueProjectionApplied({
+    ...state,
+    blocks: state.blocks.map((block) =>
+      block.id === blockId
+        ? {
+            ...block,
+            metadata: withMergedBlockMetadata(block.metadata, updates)
+          }
+        : block
+    )
+  });
 
 type BlockDetailsUpdate = {
   description?: string;
+  note?: string;
   taskType?: string;
   taskComponent?: string;
   activityType?: string;
