@@ -250,3 +250,60 @@ body {
   font-size: 0.85rem;
   color: #b45309;
 }
+
+
+.commit-preview-panel {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.commit-record-items {
+  max-height: 220px;
+}
+
+.commit-record-item {
+  cursor: pointer;
+}
+
+.commit-record-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.send-state {
+  font-size: 0.8rem;
+}
+
+.send-state--idle {
+  color: #64748b;
+}
+
+.send-state--sending {
+  color: #1d4ed8;
+}
+
+.send-state--success {
+  color: #047857;
+}
+
+.send-state--error {
+  color: #b91c1c;
+}
+
+.modal--payload-preview {
+  width: min(900px, calc(100vw - 2rem));
+}
+
+.api-payload-json {
+  margin: 0;
+  max-height: 50vh;
+  overflow: auto;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.75rem;
+  background: #f8fafc;
+  font-size: 0.8rem;
+}
