@@ -39,6 +39,13 @@ export type TimeRegistrationUserContext = {
   testRun?: boolean;
 };
 
+/**
+ * POC-default classification for time when no explicit block metadata is provided.
+ * Keeps classification visible in the canonical payload instead of leaving SAP
+ * payload semantics implicit.
+ */
+export const DEFAULT_TIME_REGISTRATION_TASK_COMPONENT = 'NORMAL';
+
 const DAY_OFFSET: Record<DayKey, number> = {
   monday: 0,
   tuesday: 1,
@@ -97,7 +104,10 @@ export const mapBlockToTimeRegistrationPayload = (
     billingControlCategory: readString(metadata, 'billingControlCategory'),
     taskType: readString(metadata, 'taskType'),
     taskLevel: readString(metadata, 'taskLevel'),
-    taskComponent: readString(metadata, 'taskComponent'),
+    taskComponent:
+      readString(metadata, 'taskComponent') ??
+      readString(metadata, 'timeCategory') ??
+      DEFAULT_TIME_REGISTRATION_TASK_COMPONENT,
     quantity: readNumber(metadata, 'quantity'),
     hoursUnitOfMeasure: readString(metadata, 'hoursUnitOfMeasure'),
     workLocationCode: readString(metadata, 'workLocationCode'),

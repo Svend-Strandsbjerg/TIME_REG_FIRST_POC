@@ -33,6 +33,8 @@ This avoids duplicate duration fields and keeps contracts aligned with foundatio
 ## Payload ownership and SAP mapping split
 
 - `TimeRegistrationPayload` is owned by this POC and remains SAP-agnostic in naming.
+- Canonical payload now carries semantic time classification fields (`taskType`, `taskComponent`, optional `activityType`, `billingControlCategory`, `overtimeCategory`) before SAP mapping.
+- When block/domain metadata does not provide a classification, the POC applies an explicit default `taskComponent = "NORMAL"` so outbound payloads remain semantically explicit.
 - Queue stores payload as opaque solution data; `ASYNC_INTEGRATION_FOUNDATION` stays generic.
 - SAP OData field names are introduced only in `integration/sap/sap-time-entry-mapper.ts`.
 - `action` (`create`/`update`/`delete`) maps to SAP `TimeSheetOperation` (`C`/`U`/`D`) in mapper layer.
