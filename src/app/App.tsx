@@ -11,7 +11,7 @@ import {
 } from '../core/application/board-service';
 import type { BoardState } from '../core/domain/board-types';
 import { toQueueReadyEntries } from '../integration/async/queue-handoff';
-import { MockBlockSource } from '../integration/inbound/mock-block-source';
+import { SAPWorkforceBlockSource } from '../integration/inbound/sap-workforce-block-source';
 import { applySeededDemoState, withSeededStartupBlocks } from '../integration/inbound/seeded-demo-state';
 import { TimeRegistrationBoard } from '../ui/components/TimeRegistrationBoard';
 import { DescriptionModal } from '../ui/components/DescriptionModal';
@@ -26,7 +26,11 @@ export const App = () => {
   const [hideWeekends, setHideWeekends] = useState(false);
 
   useEffect(() => {
-    const source = new MockBlockSource();
+    const source = new SAPWorkforceBlockSource({
+      mode: 'simulated',
+      period: { startDate: '2026-03-30', endDate: '2026-04-05' },
+      userContext: { userExternalId: 'person-1', companyCode: '1710' }
+    });
     source.listTimeRegistrationCandidates().then((blocks) => {
       const startupState = applySeededDemoState(createBoardWeek(withSeededStartupBlocks(blocks)));
       const startupView = buildPlanningView(startupState);

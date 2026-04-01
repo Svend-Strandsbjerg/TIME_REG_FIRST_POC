@@ -10,10 +10,7 @@ const ACTIVITIES: Activity[] = [
   { id: 'activity-4', source: 'manual', title: 'PSP-2003 Customer follow-up' },
   { id: 'activity-5', source: 'project-task', title: 'Azure task work: Tuesday 13:00–15:00' },
   { id: 'activity-6', source: 'manual', title: 'PSP-3007 Support / incident handling' },
-  { id: 'activity-7', source: 'calendar', title: 'Scrum/tool-derived work item: Thursday 10:00–11:30' },
-  { id: 'activity-8', source: 'calendar', title: 'Committed architecture review (changed)' },
-  { id: 'activity-9', source: 'calendar', title: 'Committed customer follow-up (removed)' },
-  { id: 'activity-10', source: 'calendar', title: 'Committed support triage (changed)' }
+  { id: 'activity-7', source: 'calendar', title: 'Scrum/tool-derived work item: Thursday 10:00–11:30' }
 ];
 
 const INSTANCES: ActivityInstance[] = [
@@ -23,10 +20,7 @@ const INSTANCES: ActivityInstance[] = [
   { id: 'instance-4', activityId: 'activity-4', suggestedDurationMinutes: 30 },
   { id: 'instance-5', activityId: 'activity-5', suggestedDurationMinutes: 120 },
   { id: 'instance-6', activityId: 'activity-6', suggestedDurationMinutes: 30 },
-  { id: 'instance-7', activityId: 'activity-7', suggestedDurationMinutes: 90 },
-  { id: 'instance-8', activityId: 'activity-8', suggestedDurationMinutes: 60 },
-  { id: 'instance-9', activityId: 'activity-9', suggestedDurationMinutes: 60 },
-  { id: 'instance-10', activityId: 'activity-10', suggestedDurationMinutes: 90 }
+  { id: 'instance-7', activityId: 'activity-7', suggestedDurationMinutes: 90 }
 ];
 
 const createMockBlocks = (): TimeBlock[] => {
@@ -39,21 +33,6 @@ const createMockBlocks = (): TimeBlock[] => {
     }
 
     const block = createTimeBlockFromActivityInstance(activity, instance, 'mock-api');
-
-    if (instance.id === 'instance-1') {
-      return {
-        ...block,
-        state: 'committed',
-        metadata: {
-          ...block.metadata,
-          committedPlacement: {
-            laneId: 'lane-monday',
-            startTime: '11:00',
-            extentMinutes: 60
-          }
-        }
-      };
-    }
 
     if (instance.id === 'instance-2') {
       return {
@@ -132,51 +111,6 @@ const createMockBlocks = (): TimeBlock[] => {
           importedStartTime: '10:00',
           importedEndTime: '11:30',
           description: 'Scrum import: complete tool-derived backlog item preparation and handover notes.'
-        }
-      };
-    }
-
-    if (instance.id === 'instance-8') {
-      return {
-        ...block,
-        state: 'committed',
-        metadata: {
-          ...block.metadata,
-          committedPlacement: {
-            laneId: 'lane-monday',
-            startTime: '08:30',
-            extentMinutes: 60
-          }
-        }
-      };
-    }
-
-    if (instance.id === 'instance-9') {
-      return {
-        ...block,
-        state: 'committed',
-        metadata: {
-          ...block.metadata,
-          committedPlacement: {
-            laneId: 'lane-tuesday',
-            startTime: '10:00',
-            extentMinutes: 60
-          }
-        }
-      };
-    }
-
-    if (instance.id === 'instance-10') {
-      return {
-        ...block,
-        state: 'committed',
-        metadata: {
-          ...block.metadata,
-          committedPlacement: {
-            laneId: 'lane-thursday',
-            startTime: '14:00',
-            extentMinutes: 90
-          }
         }
       };
     }

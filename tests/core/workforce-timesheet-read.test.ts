@@ -5,6 +5,7 @@ import {
   buildWorkforceTimesheetPeriodFilter,
   mapSAPResponseToCommittedEntries,
   parseSapTimeSheetDateToCanonicalDate,
+  readWorkforceTimesheetEntriesForPeriodSimulated,
   readWorkforceTimesheetEntriesForPeriod
 } from '../../src/integration/sap/workforce-timesheet-read';
 
@@ -160,6 +161,39 @@ describe('workforce timesheet inbound read', () => {
         }
       }
     });
+  });
+
+  it('returns SAP-shaped simulated read data for the requested context and period', async () => {
+    const response = await readWorkforceTimesheetEntriesForPeriodSimulated(
+      { startDate: '2026-03-30', endDate: '2026-04-05' },
+      { userExternalId: 'person-1', companyCode: '1710' }
+    );
+
+    expect(Array.isArray(response.d.results)).toBe(true);
+    expect(response.d.results.length).toBeGreaterThan(0);
+    expect(response.d.results[0]).toMatchObject({
+      PersonWorkAgreementExternalID: 'person-1',
+      CompanyCode: '1710'
+    });
+    expect(typeof response.d.results[0]?.TimeSheetDate).toBe('string');
+    expect(typeof response.d.results[0]?.TimeSheetDataFields?.RecordedHours).toBe('number');
+  });
+
+  it('preserves multiple same-day entries and record/status metadata through read mapping', async () => {
+    const response = await readWorkforceTimesheetEntriesForPeriodSimulated(
+      { startDate: '2026-03-30', endDate: '2026-04-05' },
+      { userExternalId: 'person-1', companyCode: '1710' }
+    );
+
+    const entries = mapSAPResponseToCommittedEntries(response);
+    const sameDayEntries = entries.filter((entry) => entry.date === '2026-03-31');
+    const blocks = mapCommittedEntriesToTimeBlocks(entries);
+    const sameDayBlocks = blocks.filter((block) => block.metadata?.date === '2026-03-31');
+
+    expect(sameDayEntries.length).toBeGreaterThan(1);
+    expect(sameDayBlocks).toHaveLength(sameDayEntries.length);
+    expect(sameDayBlocks.every((block) => typeof block.metadata?.sapTimeSheetRecord === 'string')).toBe(true);
+    expect(sameDayBlocks.every((block) => typeof block.metadata?.timeSheetStatus === 'string')).toBe(true);
   });
 
   it('converts several date formats to canonical date', () => {
