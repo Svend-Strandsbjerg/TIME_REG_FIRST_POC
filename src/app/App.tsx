@@ -57,7 +57,10 @@ export const App = () => {
 
   const planningView = useMemo(() => (state ? buildPlanningView(state) : null), [state]);
   const draftProjection = useMemo(() => (state ? convertPlacedBlockToTimeEntryDraft(state) : []), [state]);
-  const queueReadyProjection = useMemo(() => toQueueReadyEntries(draftProjection, 'planning-week-preview'), [draftProjection]);
+  const queueReadyProjection = useMemo(
+    () => (state ? toQueueReadyEntries(state.queue.items, 'planning-week-preview') : []),
+    [state]
+  );
   const hasHiddenWeekendNonCommittedBlocks = useMemo(() => {
     if (!state) {
       return false;
