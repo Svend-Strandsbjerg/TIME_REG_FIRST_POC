@@ -5,6 +5,7 @@ export type BlockDragPayload = {
   blockId: string;
   fromLaneId?: string;
   dragOrigin?: 'lane' | 'candidate-imported' | 'candidate-template' | 'candidate-changed-committed';
+  copyMode?: 'copy';
 };
 
 export const BLOCK_DRAG_MIME = 'application/x-timesheet-block+json';
@@ -29,7 +30,7 @@ export const writeBlockPayload = (event: DragEvent, payload: Omit<BlockDragPaylo
   event.dataTransfer.setData(BLOCK_DRAG_MIME, serializedPayload);
   event.dataTransfer.setData(BLOCK_DRAG_KIND_MIME, 'timesheet-block');
   event.dataTransfer.setData(BLOCK_DRAG_TEXT_MIME, `${BLOCK_DRAG_TEXT_PREFIX}${payload.blockId}`);
-  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.effectAllowed = payload.copyMode === 'copy' ? 'copyMove' : 'move';
 };
 
 const parseJsonPayload = (raw: string): BlockDragPayload | null => {

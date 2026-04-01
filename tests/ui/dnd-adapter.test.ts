@@ -56,7 +56,8 @@ describe('dnd-adapter block payload contract', () => {
         dragType: 'timesheet-block',
         blockId: 'block-456',
         fromLaneId: 'tuesday',
-        dragOrigin: 'candidate-changed-committed'
+        dragOrigin: 'candidate-changed-committed',
+        copyMode: 'copy'
       })
     );
 
@@ -64,8 +65,17 @@ describe('dnd-adapter block payload contract', () => {
       dragType: 'timesheet-block',
       blockId: 'block-456',
       fromLaneId: 'tuesday',
-      dragOrigin: 'candidate-changed-committed'
+      dragOrigin: 'candidate-changed-committed',
+      copyMode: 'copy'
     });
+  });
+
+  it('sets copyMove effect when ctrl-drag payload is marked as copy mode', () => {
+    const event = createMockDragEvent();
+
+    writeBlockPayload(event, { blockId: 'block-copy', copyMode: 'copy' });
+
+    expect(event.dataTransfer.effectAllowed).toBe('copyMove');
   });
 
   it('supports legacy payload migration without dragType', () => {

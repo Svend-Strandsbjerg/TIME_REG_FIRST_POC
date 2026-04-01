@@ -3,6 +3,8 @@ import { buildPlanningView } from '../../src/core/application/board-queries';
 import {
   autoPlaceImportedBlock,
   createBoardWeek,
+  createDraggedBlockCopy,
+  discardBlockById,
   placeBlockOnLane,
   resizeBlockFromBottom,
   resizeBlockFromTop,
@@ -283,5 +285,59 @@ describe('board-service queue simulation', () => {
       targetSystem: 'sap',
       operation: 'create'
     });
+  });
+
+  it('ctrl-drag copy creates a new uncommitted block id without mutating the source block metadata', () => {
+    const board = createBoardWeek(blocks);
+    const sourceBefore = board.blocks.find((block) => block.id === 'b3');
+    const copyResult = createDraggedBlockCopy(board, 'b3');
+
+    expect(copyResult).not.toBeNull();
+    const copiedBlockId = copyResult?.copiedBlockId ?? '';
+    const copiedBlock = copyResult?.state.blocks.find((block) => block.id === copiedBlockId);
+    const sourceAfter = copyResult?.state.blocks.find((block) => block.id === 'b3');
+
+    expect(copiedBlockId).toMatch(/^copy-b3-\d+$/);
+    expect(copiedBlock?.state).toBe('uncommitted');
+    expect(copiedBlock?.extentMinutes).toBe(sourceBefore?.extentMinutes);
+    expect(copiedBlock?.metadata).toMatchObject(sourceBefore?.metadata as Record<string, unknown>);
+    expect(copiedBlock?.metadata).not.toBe(sourceBefore?.metadata);
+    expect(sourceAfter?.metadata).toEqual(sourceBefore?.metadata);
+  });
+
+  it('ctrl-drag copy does not create queue entries until the copied block is dropped', () => {
+    const board = createBoardWeek(blocks);
+    const copyResult = createDraggedBlockCopy(board, 'b3');
+    if (!copyResult) {
+      throw new Error('Expected copied block result');
+    }
+
+    expect(copyResult.state.queue.items).toHaveLength(0);
+
+    const dropped = placeBlockOnLane(copyResult.state, copyResult.copiedBlockId, 'lane-thursday', '11:00');
+    const queueItem = dropped.queue.items.find((item) => item.payload.blockId === copyResult.copiedBlockId);
+
+    expect(queueItem).toMatchObject({
+      operation: 'create',
+      payload: {
+        startTime: '11:00'
+      }
+    });
+  });
+
+  it('discarding a canceled ctrl-drag copy removes the copied block and leaves source placement unchanged', () => {
+    const board = placeBlockOnLane(createBoardWeek(blocks), 'b3', 'lane-tuesday', '09:00');
+    const sourcePlacementBefore = board.placements.find((placement) => placement.blockId === 'b3');
+    const copyResult = createDraggedBlockCopy(board, 'b3');
+    if (!copyResult) {
+      throw new Error('Expected copied block result');
+    }
+
+    const discarded = discardBlockById(copyResult.state, copyResult.copiedBlockId);
+    const sourcePlacementAfter = discarded.placements.find((placement) => placement.blockId === 'b3');
+
+    expect(discarded.blocks.some((block) => block.id === copyResult.copiedBlockId)).toBe(false);
+    expect(discarded.placements.some((placement) => placement.blockId === copyResult.copiedBlockId)).toBe(false);
+    expect(sourcePlacementAfter).toEqual(sourcePlacementBefore);
   });
 });

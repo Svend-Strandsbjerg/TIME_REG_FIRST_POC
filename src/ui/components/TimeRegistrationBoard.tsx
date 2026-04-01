@@ -19,6 +19,13 @@ type Props = {
   onResizeBottom: (blockId: string, slotDelta: number) => void;
   onAutoPlaceImported: (blockId: string) => void;
   onOpenDescriptionEditor: (blockId: string) => void;
+  onStartDrag: (args: {
+    blockId: string;
+    dragOrigin?: 'lane' | 'candidate-imported' | 'candidate-template' | 'candidate-changed-committed';
+    fromLaneId?: string;
+    ctrlKey: boolean;
+  }) => { blockId: string; copyMode?: 'copy' };
+  onEndDrag: (args: { blockId: string; dropEffect: DataTransfer['dropEffect'] }) => void;
 };
 
 export const TimeRegistrationBoard = ({
@@ -31,7 +38,9 @@ export const TimeRegistrationBoard = ({
   onResizeBottom,
   onResizeTop,
   onAutoPlaceImported,
-  onOpenDescriptionEditor
+  onOpenDescriptionEditor,
+  onStartDrag,
+  onEndDrag
 }: Props) => {
   const visibleLanes = hideWeekends ? board.lanes.filter((lane) => lane.lane.dayKey !== 'saturday' && lane.lane.dayKey !== 'sunday') : board.lanes;
 
@@ -43,6 +52,8 @@ export const TimeRegistrationBoard = ({
         changedCommittedCandidates={board.changedCommittedCandidates}
         onAutoPlaceImported={onAutoPlaceImported}
         onReturnBlock={onReturnBlock}
+        onStartDrag={onStartDrag}
+        onEndDrag={onEndDrag}
       />
       <section className="board-section">
         <header className="summary">
@@ -61,6 +72,8 @@ export const TimeRegistrationBoard = ({
           onResizeBottom={onResizeBottom}
           onResizeTop={onResizeTop}
           onOpenDescriptionEditor={onOpenDescriptionEditor}
+          onStartDrag={onStartDrag}
+          onEndDrag={onEndDrag}
         />
       </section>
       <QueueLogPanel queue={board.queue} />
