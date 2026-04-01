@@ -266,6 +266,33 @@ body {
   cursor: pointer;
 }
 
+.commit-record-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.send-state {
+  font-size: 0.8rem;
+}
+
+.send-state--idle {
+  color: #64748b;
+}
+
+.send-state--sending {
+  color: #1d4ed8;
+}
+
+.send-state--success {
+  color: #047857;
+}
+
+.send-state--error {
+  color: #b91c1c;
+}
+
 .modal--payload-preview {
   width: min(900px, calc(100vw - 2rem));
 }
