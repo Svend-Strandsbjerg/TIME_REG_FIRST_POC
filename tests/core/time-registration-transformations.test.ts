@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { TimeBlock } from '../../src/core/domain/board-types';
 import { buildTimeRegistrationQueuePayload } from '../../src/core/domain/time-registration-queue';
-import { mapBlockToTimeRegistrationPayload } from '../../src/core/domain/time-registration-payload';
+import {
+  DEFAULT_TIME_REGISTRATION_TASK_COMPONENT,
+  mapBlockToTimeRegistrationPayload
+} from '../../src/core/domain/time-registration-payload';
 import { mapTimeRegistrationPayloadToWorkforceTimesheetRequest } from '../../src/integration/sap/sap-time-entry-mapper';
 
 const block: TimeBlock = {
@@ -52,6 +55,8 @@ describe('time registration transformations', () => {
       action: 'create',
       hours: 1.5,
       wbsElement: 'PSP-1001',
+      taskType: 'TASK',
+      taskComponent: 'COMP-7',
       note: 'Implement API transformation',
       sapTimeSheetRecord: 'TSR-9001',
       startTime: '09:00',
@@ -80,7 +85,26 @@ describe('time registration transformations', () => {
     expect(payload.wbsElement).toBe('PSP-1001');
     expect(payload.note).toBe('Implement API transformation');
     expect(payload.sapTimeSheetRecord).toBe('TSR-9001');
+    expect(payload.taskType).toBe('TASK');
+    expect(payload.taskComponent).toBe('COMP-7');
     expect(payload.endTime).toBe('09:30');
+  });
+
+  it('defaults taskComponent to a visible POC value when block metadata does not provide type', () => {
+    const payload = mapBlockToTimeRegistrationPayload(
+      { ...block, metadata: { pspElement: 'PSP-1001' } },
+      { dayKey: 'monday', startTime: '09:00', endTime: '10:30' },
+      {
+        action: 'create',
+        userContext: {
+          userExternalId: 'person-77',
+          companyCode: '1710',
+          weekStartDate: '2026-03-30'
+        }
+      }
+    );
+
+    expect(payload.taskComponent).toBe(DEFAULT_TIME_REGISTRATION_TASK_COMPONENT);
   });
 
   it('maps payload into WorkforceTimesheetRequest with operation mapping', () => {
@@ -91,6 +115,11 @@ describe('time registration transformations', () => {
       action: 'create',
       hours: 8,
       wbsElement: 'PSP-2003',
+      taskType: 'WORK',
+      taskComponent: 'NORMAL',
+      activityType: 'DEV',
+      billingControlCategory: 'B1',
+      overtimeCategory: 'OT1',
       note: 'Customer workshop',
       blockId: 'block-2',
       title: 'Workshop',
@@ -101,6 +130,11 @@ describe('time registration transformations', () => {
 
     expect(createRequest.TimeSheetOperation).toBe('C');
     expect(createRequest.TimeSheetDataFields.RecordedHours).toBe(8);
+    expect(createRequest.TimeSheetDataFields.TimeSheetTaskType).toBe('WORK');
+    expect(createRequest.TimeSheetDataFields.TimeSheetTaskComponent).toBe('NORMAL');
+    expect(createRequest.TimeSheetDataFields.ActivityType).toBe('DEV');
+    expect(createRequest.TimeSheetDataFields.BillingControlCategory).toBe('B1');
+    expect(createRequest.TimeSheetDataFields.TimeSheetOvertimeCategory).toBe('OT1');
 
     const updateRequest = mapTimeRegistrationPayloadToWorkforceTimesheetRequest({
       userExternalId: 'person-77',
