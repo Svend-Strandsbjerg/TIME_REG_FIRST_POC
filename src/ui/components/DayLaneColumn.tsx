@@ -14,6 +14,16 @@ type Props = {
   onResizeTop: (blockId: string, slotDelta: number) => void;
   onResizeBottom: (blockId: string, slotDelta: number) => void;
   onOpenDescriptionEditor: (blockId: string) => void;
+  onStartDrag: (args: {
+    blockId: string;
+    dragOrigin?: 'lane' | 'candidate-imported' | 'candidate-template' | 'candidate-changed-committed';
+    fromLaneId?: string;
+    ctrlKey: boolean;
+  }) => {
+    blockId: string;
+    copyMode?: 'copy';
+  };
+  onEndDrag: (args: { blockId: string; dropEffect: DataTransfer['dropEffect'] }) => void;
 };
 
 const SLOT_HEIGHT_PX = 60;
@@ -26,7 +36,7 @@ const resolveDropSlot = (event: DragEvent<HTMLDivElement>, slots: string[]) => {
   return slots[slotIndex] ?? slots[0] ?? '06:00';
 };
 
-export const DayLaneColumn = ({ lane, onDropBlock, onResizeBottom, onResizeTop, onOpenDescriptionEditor }: Props) => (
+export const DayLaneColumn = ({ lane, onDropBlock, onResizeBottom, onResizeTop, onOpenDescriptionEditor, onStartDrag, onEndDrag }: Props) => (
   <section className="lane">
     <header>
       <h3>{lane.lane.label}</h3>
@@ -41,7 +51,8 @@ export const DayLaneColumn = ({ lane, onDropBlock, onResizeBottom, onResizeTop, 
         }
 
         event.preventDefault();
-        event.dataTransfer.dropEffect = 'move';
+        const payload = readBlockPayload(event);
+        event.dataTransfer.dropEffect = payload?.copyMode === 'copy' ? 'copy' : 'move';
       }}
       onDrop={(event) => {
         event.preventDefault();
@@ -79,6 +90,8 @@ export const DayLaneColumn = ({ lane, onDropBlock, onResizeBottom, onResizeTop, 
               card={card}
               fromLaneId={lane.lane.id}
               dragOrigin="lane"
+              onStartDrag={onStartDrag}
+              onEndDrag={onEndDrag}
               onResizeBottom={onResizeBottom}
               onResizeTop={onResizeTop}
               onDoubleClick={onOpenDescriptionEditor}

@@ -3,6 +3,8 @@ import { buildPlanningView, convertPlacedBlockToTimeEntryDraft } from '../core/a
 import {
   autoPlaceImportedBlock,
   createBoardWeek,
+  createDraggedBlockCopy,
+  discardBlockById,
   placeBlockOnLane,
   resizeBlockFromBottom,
   resizeBlockFromTop,
@@ -24,6 +26,7 @@ export const App = () => {
   const [state, setState] = useState<BoardState | null>(null);
   const [descriptionEditor, setDescriptionEditor] = useState<DescriptionEditorState | null>(null);
   const [hideWeekends, setHideWeekends] = useState(false);
+  const [activeCopiedDragId, setActiveCopiedDragId] = useState<string | null>(null);
 
   useEffect(() => {
     const source = new SAPWorkforceBlockSource({
@@ -139,6 +142,40 @@ export const App = () => {
           setState((current) => (current ? autoPlaceImportedBlock(current, blockId) : current))
         }
         onOpenDescriptionEditor={(blockId) => setDescriptionEditor({ blockId })}
+        onStartDrag={({ blockId, ctrlKey }) => {
+          if (!ctrlKey) {
+            return { blockId };
+          }
+
+          if (!state) {
+            return { blockId };
+          }
+
+          const copyResult = createDraggedBlockCopy(state, blockId);
+          if (!copyResult) {
+            return { blockId };
+          }
+
+          setState(copyResult.state);
+          setActiveCopiedDragId(copyResult.copiedBlockId);
+          return {
+            blockId: copyResult.copiedBlockId,
+            copyMode: 'copy'
+          };
+        }}
+        onEndDrag={({ dropEffect }) => {
+          if (!activeCopiedDragId) {
+            return;
+          }
+
+          if (dropEffect !== 'none') {
+            setActiveCopiedDragId(null);
+            return;
+          }
+
+          setState((current) => (current ? discardBlockById(current, activeCopiedDragId) : current));
+          setActiveCopiedDragId(null);
+        }}
       />
       <DescriptionModal
         isOpen={Boolean(descriptionEditor)}

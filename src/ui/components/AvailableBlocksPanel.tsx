@@ -8,6 +8,13 @@ type Props = {
   changedCommittedCandidates: TimeBlockCardView[];
   onReturnBlock: (blockId: string) => void;
   onAutoPlaceImported: (blockId: string) => void;
+  onStartDrag: (args: {
+    blockId: string;
+    dragOrigin?: 'lane' | 'candidate-imported' | 'candidate-template' | 'candidate-changed-committed';
+    fromLaneId?: string;
+    ctrlKey: boolean;
+  }) => { blockId: string; copyMode?: 'copy' };
+  onEndDrag: (args: { blockId: string; dropEffect: DataTransfer['dropEffect'] }) => void;
 };
 
 export const AvailableBlocksPanel = ({
@@ -15,7 +22,9 @@ export const AvailableBlocksPanel = ({
   templateCandidates,
   changedCommittedCandidates,
   onAutoPlaceImported,
-  onReturnBlock
+  onReturnBlock,
+  onStartDrag,
+  onEndDrag
 }: Props) => {
   console.info('[candidate-panel] rendered candidate counts', {
     imported: importedCandidates.length,
@@ -32,7 +41,8 @@ export const AvailableBlocksPanel = ({
         }
 
         event.preventDefault();
-        event.dataTransfer.dropEffect = 'move';
+        const payload = readBlockPayload(event);
+        event.dataTransfer.dropEffect = payload?.copyMode === 'copy' ? 'copy' : 'move';
       }}
       onDrop={(event) => {
         event.preventDefault();
@@ -56,6 +66,8 @@ export const AvailableBlocksPanel = ({
               card={card}
               onDoubleClick={onAutoPlaceImported}
               dragOrigin="candidate-imported"
+              onStartDrag={onStartDrag}
+              onEndDrag={onEndDrag}
               visualContext="candidate"
             />
           ))}
@@ -68,7 +80,14 @@ export const AvailableBlocksPanel = ({
         {templateCandidates.length === 0 ? <p>No template candidates.</p> : null}
         <div className="panel-blocks">
           {templateCandidates.map((card) => (
-            <TimeBlockCard key={card.block.id} card={card} dragOrigin="candidate-template" visualContext="candidate" />
+            <TimeBlockCard
+              key={card.block.id}
+              card={card}
+              dragOrigin="candidate-template"
+              onStartDrag={onStartDrag}
+              onEndDrag={onEndDrag}
+              visualContext="candidate"
+            />
           ))}
         </div>
       </div>
@@ -83,6 +102,8 @@ export const AvailableBlocksPanel = ({
                 key={card.block.id}
                 card={card}
                 dragOrigin="candidate-changed-committed"
+                onStartDrag={onStartDrag}
+                onEndDrag={onEndDrag}
                 visualContext="candidate"
               />
             ))}

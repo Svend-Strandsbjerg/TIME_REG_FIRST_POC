@@ -347,3 +347,79 @@ const withMergedBlockMetadata = (metadata: TimeBlock['metadata'], updates: Block
 
 export const updateBlockDescription = (state: BoardState, blockId: TimeBlockId, description: string): BoardState =>
   updateBlockDetails(state, blockId, { description });
+
+const cloneMetadataSafely = (metadata: TimeBlock['metadata']): Record<string, unknown> => {
+  if (!metadata) {
+    return {};
+  }
+
+  try {
+    return structuredClone(metadata) as Record<string, unknown>;
+  } catch {
+    return JSON.parse(JSON.stringify(metadata)) as Record<string, unknown>;
+  }
+};
+
+const createCopiedBlockId = (state: BoardState, sourceBlockId: TimeBlockId): TimeBlockId => {
+  const prefix = `copy-${sourceBlockId}-`;
+  const existingIndexes = state.blocks
+    .map((block) => {
+      if (!block.id.startsWith(prefix)) {
+        return 0;
+      }
+
+      const suffix = Number(block.id.slice(prefix.length));
+      return Number.isFinite(suffix) && suffix > 0 ? suffix : 0;
+    })
+    .filter((value) => value > 0);
+
+  const nextIndex = existingIndexes.length > 0 ? Math.max(...existingIndexes) + 1 : 1;
+  return `${prefix}${nextIndex}`;
+};
+
+export const createDraggedBlockCopy = (
+  state: BoardState,
+  sourceBlockId: TimeBlockId
+): { state: BoardState; copiedBlockId: TimeBlockId } | null => {
+  const sourceBlock = state.blocks.find((candidate) => candidate.id === sourceBlockId);
+  if (!sourceBlock) {
+    return null;
+  }
+
+  const copiedBlockId = createCopiedBlockId(state, sourceBlockId);
+  const sourceMetadata = cloneMetadataSafely(sourceBlock.metadata);
+
+  const instantiated = instantiateBlockFromSourceSafe(sourceBlock, {
+    id: copiedBlockId,
+    state: 'uncommitted',
+    extentMinutes: sourceBlock.extentMinutes,
+    metadata: sourceMetadata
+  }) as Partial<TimeBlock>;
+
+  const copiedBlock = withBlockMetadataDefaults({
+    ...sourceBlock,
+    ...instantiated,
+    id: copiedBlockId,
+    state: 'uncommitted',
+    extentMinutes: sourceBlock.extentMinutes,
+    metadata: {
+      ...sourceMetadata,
+      ...(instantiated.metadata ?? {})
+    }
+  });
+
+  return {
+    state: {
+      ...state,
+      blocks: state.blocks.concat(copiedBlock)
+    },
+    copiedBlockId
+  };
+};
+
+export const discardBlockById = (state: BoardState, blockId: TimeBlockId): BoardState =>
+  withQueueProjectionApplied({
+    ...state,
+    blocks: state.blocks.filter((block) => block.id !== blockId),
+    placements: state.placements.filter((placement) => placement.blockId !== blockId)
+  });

@@ -12,9 +12,19 @@ type Props = {
   onResizeTop: (blockId: string, slotDelta: number) => void;
   onResizeBottom: (blockId: string, slotDelta: number) => void;
   onOpenDescriptionEditor: (blockId: string) => void;
+  onStartDrag: (args: {
+    blockId: string;
+    dragOrigin?: 'lane' | 'candidate-imported' | 'candidate-template' | 'candidate-changed-committed';
+    fromLaneId?: string;
+    ctrlKey: boolean;
+  }) => {
+    blockId: string;
+    copyMode?: 'copy';
+  };
+  onEndDrag: (args: { blockId: string; dropEffect: DataTransfer['dropEffect'] }) => void;
 };
 
-export const WeekSwimlanes = ({ lanes, onDropBlock, onResizeBottom, onResizeTop, onOpenDescriptionEditor }: Props) => (
+export const WeekSwimlanes = ({ lanes, onDropBlock, onResizeBottom, onResizeTop, onOpenDescriptionEditor, onStartDrag, onEndDrag }: Props) => (
   <section className="week-grid" style={{ gridTemplateColumns: `repeat(${Math.max(lanes.length, 1)}, minmax(190px, 1fr))` }}>
     {lanes.map((lane) => (
       <DayLaneColumn
@@ -24,6 +34,8 @@ export const WeekSwimlanes = ({ lanes, onDropBlock, onResizeBottom, onResizeTop,
         onResizeBottom={onResizeBottom}
         onResizeTop={onResizeTop}
         onOpenDescriptionEditor={onOpenDescriptionEditor}
+        onStartDrag={onStartDrag}
+        onEndDrag={onEndDrag}
       />
     ))}
   </section>

@@ -9,6 +9,16 @@ type Props = {
   card: TimeBlockCardView;
   fromLaneId?: string;
   dragOrigin?: 'lane' | 'candidate-imported' | 'candidate-template' | 'candidate-changed-committed';
+  onStartDrag?: (args: {
+    blockId: string;
+    dragOrigin?: 'lane' | 'candidate-imported' | 'candidate-template' | 'candidate-changed-committed';
+    fromLaneId?: string;
+    ctrlKey: boolean;
+  }) => {
+    blockId: string;
+    copyMode?: 'copy';
+  };
+  onEndDrag?: (args: { blockId: string; dropEffect: DataTransfer['dropEffect'] }) => void;
   onResizeTop?: (blockId: string, slotDelta: number) => void;
   onResizeBottom?: (blockId: string, slotDelta: number) => void;
   onDoubleClick?: (blockId: string) => void;
@@ -21,6 +31,8 @@ export const TimeBlockCard = ({
   card,
   fromLaneId,
   dragOrigin,
+  onStartDrag,
+  onEndDrag,
   onDoubleClick,
   onResizeBottom,
   onResizeTop,
@@ -73,7 +85,16 @@ export const TimeBlockCard = ({
           return;
         }
         event.stopPropagation();
-        writeBlockPayload(event, { blockId: card.block.id, fromLaneId, dragOrigin });
+        const dragTarget = onStartDrag?.({ blockId: card.block.id, dragOrigin, fromLaneId, ctrlKey: event.ctrlKey });
+        writeBlockPayload(event, {
+          blockId: dragTarget?.blockId ?? card.block.id,
+          fromLaneId,
+          dragOrigin,
+          copyMode: dragTarget?.copyMode
+        });
+      }}
+      onDragEnd={(event) => {
+        onEndDrag?.({ blockId: card.block.id, dropEffect: event.dataTransfer.dropEffect });
       }}
       onDoubleClick={() => onDoubleClick?.(card.block.id)}
       className={`time-block-card time-block-card--${card.visualState} time-block-card--${visualContext}`}
