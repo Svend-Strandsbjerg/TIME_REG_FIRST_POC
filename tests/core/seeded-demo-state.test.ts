@@ -36,6 +36,8 @@ describe('seeded demo startup state', () => {
 
   it('does not mutate startup state with changed committed demo operations', async () => {
     const blocks = await new MockBlockSource().listTimeRegistrationCandidates();
+    expect(blocks.some((block) => block.state === 'committed')).toBe(false);
+
     const seeded = applySeededDemoState(createBoardWeek(withSeededStartupBlocks(blocks)));
     const view = buildPlanningView(seeded);
 

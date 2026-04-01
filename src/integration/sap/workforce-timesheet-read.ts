@@ -214,6 +214,88 @@ export type WorkforceTimesheetReadServiceDependencies = {
   fetchImpl?: typeof fetch;
 };
 
+const SIMULATED_WEEKLY_ENTRIES: WorkforceTimesheetReadEntry[] = [
+  {
+    PersonWorkAgreementExternalID: 'person-1',
+    CompanyCode: '1710',
+    TimeSheetRecord: 'TSR-SIM-1001',
+    TimeSheetDate: '/Date(1774915200000)/',
+    TimeSheetStatus: '30',
+    TimeSheetDataFields: {
+      WBSElement: 'PSP-1001',
+      TimeSheetNote: 'Weekly customer status sync',
+      RecordedHours: 1
+    }
+  },
+  {
+    PersonWorkAgreementExternalID: 'person-1',
+    CompanyCode: '1710',
+    TimeSheetRecord: 'TSR-SIM-1002',
+    TimeSheetDate: '/Date(1774915200000)/',
+    TimeSheetStatus: '20',
+    TimeSheetDataFields: {
+      WBSElement: 'PSP-2003',
+      TimeSheetNote: 'Customer follow-up preparation',
+      RecordedHours: 2.5
+    }
+  },
+  {
+    PersonWorkAgreementExternalID: 'person-1',
+    CompanyCode: '1710',
+    TimeSheetRecord: 'TSR-SIM-1003',
+    TimeSheetDate: '/Date(1775001600000)/',
+    TimeSheetStatus: '30',
+    TimeSheetDataFields: {
+      WBSElement: 'PSP-3007',
+      TimeSheetNote: 'Support and incident handling',
+      RecordedHours: 1.5
+    }
+  },
+  {
+    PersonWorkAgreementExternalID: 'person-1',
+    CompanyCode: '1710',
+    TimeSheetRecord: 'TSR-SIM-1004',
+    TimeSheetDate: '/Date(1775088000000)/',
+    TimeSheetStatus: '10',
+    TimeSheetDataFields: {
+      WBSElement: 'PSP-4002',
+      TimeSheetNote: 'Architecture review workshop',
+      RecordedHours: 3
+    }
+  }
+];
+
+export const readWorkforceTimesheetEntriesForPeriodSimulated = async (
+  period: TimeRegistrationPeriod,
+  userContext: TimeRegistrationReadUserContext
+): Promise<{ d: { results: WorkforceTimesheetReadEntry[] } }> => {
+  assertCanonicalDate(period.startDate, 'startDate');
+  assertCanonicalDate(period.endDate, 'endDate');
+
+  const filtered = SIMULATED_WEEKLY_ENTRIES.filter((entry) => {
+    if (
+      entry.PersonWorkAgreementExternalID !== userContext.userExternalId ||
+      entry.CompanyCode !== userContext.companyCode ||
+      !entry.TimeSheetDate
+    ) {
+      return false;
+    }
+
+    const canonicalDate = parseSapTimeSheetDateToCanonicalDate(entry.TimeSheetDate);
+    if (!canonicalDate) {
+      return false;
+    }
+
+    return canonicalDate >= period.startDate && canonicalDate <= period.endDate;
+  });
+
+  return Promise.resolve({
+    d: {
+      results: filtered
+    }
+  });
+};
+
 export const readWorkforceTimesheetEntriesForPeriod = async (
   period: TimeRegistrationPeriod,
   userContext: TimeRegistrationReadUserContext,
