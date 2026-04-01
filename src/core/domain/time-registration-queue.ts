@@ -1,24 +1,29 @@
 import type { DayKey, QueueOperation, QueueRoutingHints, TimeBlock, TimeRegistrationQueuePayload, TimeOfDay } from './board-types';
+import type { TimeRegistrationUserContext } from './time-registration-payload';
+import { mapBlockToTimeRegistrationPayload } from './time-registration-payload';
 import { deriveEndTime } from './time-slot';
 
-const formatInterval = (startTime: TimeOfDay, endTime: TimeOfDay): string => `${startTime} - ${endTime}`;
+export const createDefaultTimeRegistrationUserContext = (): TimeRegistrationUserContext => ({
+  userExternalId: 'demo.worker',
+  companyCode: '1010',
+  weekStartDate: '2026-03-30',
+  releaseOnSave: false,
+  testRun: true
+});
 
 export const buildTimeRegistrationQueuePayload = (
   block: TimeBlock,
-  placement: { dayKey: DayKey; startTime: TimeOfDay }
+  placement: { dayKey: DayKey; startTime: TimeOfDay },
+  operation: QueueOperation,
+  userContext: TimeRegistrationUserContext = createDefaultTimeRegistrationUserContext()
 ): TimeRegistrationQueuePayload => {
   const endTime = deriveEndTime(placement.startTime, block.extentMinutes);
 
-  return {
-    blockId: block.id,
-    title: block.title,
-    dayKey: placement.dayKey,
-    startTime: placement.startTime,
-    endTime,
-    interval: formatInterval(placement.startTime, endTime),
-    extentMinutes: block.extentMinutes,
-    source: block.source
-  };
+  return mapBlockToTimeRegistrationPayload(
+    block,
+    { dayKey: placement.dayKey, startTime: placement.startTime, endTime },
+    { action: operation, userContext }
+  );
 };
 
 export const buildQueueRoutingHints = (
@@ -30,5 +35,5 @@ export const buildQueueRoutingHints = (
   adapterKey: 'sap-time-entry',
   targetSystem: 'sap',
   operation,
-  idempotencyKey: `${queueId}:${payload.blockId}:${payload.dayKey}:${payload.startTime}:${operation}`
+  idempotencyKey: `${queueId}:${payload.blockId}:${payload.date}:${payload.startTime}:${operation}`
 });

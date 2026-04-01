@@ -24,8 +24,8 @@ export const QueueLogPanel = ({ queue }: Props) => {
             <strong>{item.payload.title}</strong>
             <span>queue ID: {item.queueId}</span>
             <span>item ID: {item.id}</span>
-            <span>day: {item.payload.dayKey}</span>
-            <span>interval: {item.payload.interval}</span>
+            <span>date: {item.payload.date}</span>
+            <span>interval: {item.payload.startTime} - {item.payload.endTime}</span>
             <span>operation: {item.operation}</span>
             <small>{item.metadata.reason}</small>
           </li>

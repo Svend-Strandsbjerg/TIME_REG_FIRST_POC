@@ -7,7 +7,7 @@ The current phase projects queue items from time-aware placements:
 - one queue (`planning-queue`)
 - status `paused`
 - operations `create` / `update` / `delete`
-- queue item stores a time-registration payload (`dayKey`, `startTime`, derived `endTime`, `interval`) plus explicit routing hints
+- queue item stores a POC-owned `TimeRegistrationPayload` (user/context IDs, date, action, optional SAP-relevant references, and block traceability fields) plus explicit routing hints
 
 ## Current mapping behavior
 
@@ -28,7 +28,14 @@ This avoids duplicate duration fields and keeps contracts aligned with foundatio
 
 ## Next integration handoff
 
-`Block(state, extent) + Placement(day, start) -> time-registration payload projection -> generic queue item -> adapter mapping`
+`Block(state, extent) + Placement(day, start) + UserContext -> TimeRegistrationPayload -> generic queue item -> SAP mapper`
+
+## Payload ownership and SAP mapping split
+
+- `TimeRegistrationPayload` is owned by this POC and remains SAP-agnostic in naming.
+- Queue stores payload as opaque solution data; `ASYNC_INTEGRATION_FOUNDATION` stays generic.
+- SAP OData field names are introduced only in `integration/sap/sap-time-entry-mapper.ts`.
+- `action` (`create`/`update`/`delete`) maps to SAP `TimeSheetOperation` (`C`/`U`/`D`) in mapper layer.
 
 ## Forward compatibility
 

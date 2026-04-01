@@ -53,16 +53,7 @@ export type PlacedBlock = {
 
 export type QueueOperation = 'create' | 'update' | 'delete';
 
-export type TimeRegistrationQueuePayload = {
-  blockId: TimeBlockId;
-  title: string;
-  dayKey: DayKey;
-  startTime: TimeOfDay;
-  endTime: TimeOfDay;
-  interval: string;
-  extentMinutes: number;
-  source: TimeBlock['source'];
-};
+export type TimeRegistrationQueuePayload = import('./time-registration-payload').TimeRegistrationPayload;
 
 export type QueueRoutingHints = {
   payloadType: 'time-registration-entry';
