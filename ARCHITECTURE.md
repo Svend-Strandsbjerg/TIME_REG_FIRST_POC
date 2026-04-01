@@ -91,3 +91,11 @@ The planner allows concurrent placements. Core projections annotate each placed 
 - `src/core/domain/board-rules.ts` directly imports `BLOCK_ENGINE_FOUNDATION` resize/extent APIs and `ASYNC_INTEGRATION_FOUNDATION` queue identity/item-construction APIs.
 - The POC keeps planning intent (create/update/delete decisioning), day/time placement semantics, candidate semantics, overlap rendering, and UI behavior.
 - Foundations own canonical block/queue mechanics and identities used by runtime state projection.
+
+## SAP Workforce Timesheet inbound read flow
+
+- SAP-specific read logic is isolated to `src/integration/sap/workforce-timesheet-read.ts`.
+- Period reads accept a typed POC contract (`startDate`, `endDate`, `userExternalId`, `companyCode`) using canonical `YYYY-MM-DD` dates.
+- SAP OData filter serialization (including inclusive period semantics via `ge` start + `lt` next-day boundary) is centralized in one helper (`buildWorkforceTimesheetPeriodFilter`).
+- SAP response parsing supports OData V2 (`d.results`) and OData V4 (`value`) wrappers and normalizes entries into a POC-owned canonical inbound model (`TimeRegistrationCommittedEntry`).
+- Board-facing mapping is kept in the POC integration layer (`src/integration/inbound/workforce-timesheet-inbound.ts`), which preserves `TimeSheetRecord`, status, predecessor, and typed numeric fields in metadata for future update/delete flows.
